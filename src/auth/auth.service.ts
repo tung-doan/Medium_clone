@@ -28,6 +28,14 @@ export class AuthService {
         }
         return {
             token: this.jwtService.sign({ id: user.id, username: user.username }),
+            user: {
+                id: user.id,
+                username: user.username,
+                name: user.name,
+                email: user.email,
+                createdAt: user.createdAt,
+                updatedAt: user.updatedAt
+            }
         }
     }
 
