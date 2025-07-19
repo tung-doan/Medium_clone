@@ -4,6 +4,12 @@ import { Controller, Post, Body, Res, Req } from '@nestjs/common';
 import { LoginDto } from 'src/auth/dto/login-user.dto';
 import { Request, Response } from 'express';
 import { RegisterDto } from 'src/auth/dto/register-user.dto';
+import {
+  RegisterResponse,
+  LoginResponse,
+  ApiResponse,
+} from 'src/auth/interfaces/auth.interface';
+import { HttpStatus } from '@nestjs/common';
 
 @Controller('/api')
 export class AuthController {
@@ -14,10 +20,10 @@ export class AuthController {
     @Req() request: Request,
     @Res() response: Response,
     @Body() loginDto: LoginDto,
-  ): Promise<any> {
+  ): Promise<ApiResponse<LoginResponse>> {
     try {
       const result = await this.authService.login(loginDto);
-      return response.status(200).json({
+      return response.status(HttpStatus.OK).json({
         status: 'success',
         message: 'Login successful',
         result: result,
@@ -27,7 +33,7 @@ export class AuthController {
       if (error instanceof Error) {
         errorMessage = error.message;
       }
-      return response.status(500).json({
+      return response.status(HttpStatus.UNAUTHORIZED).json({
         status: 'error',
         message: 'Login failed',
         error: errorMessage,
@@ -40,10 +46,10 @@ export class AuthController {
     @Req() request: Request,
     @Res() response: Response,
     @Body() registerDto: RegisterDto,
-  ): Promise<any> {
+  ): Promise<ApiResponse<RegisterResponse>> {
     try {
       const result = await this.authService.register(registerDto);
-      return response.status(200).json({
+      return response.status(HttpStatus.CREATED).json({
         status: 'success',
         message: 'register successful',
         result: result,
@@ -53,7 +59,7 @@ export class AuthController {
       if (error instanceof Error) {
         errorMessage = error.message;
       }
-      return response.status(500).json({
+      return response.status(HttpStatus.INTERNAL_SERVER_ERROR).json({
         status: 'error',
         message: 'register failed',
         error: errorMessage,

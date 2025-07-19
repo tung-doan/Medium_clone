@@ -1,17 +1,17 @@
 import { IsString, Length } from 'class-validator';
 
-export class RegisterDto{
-    @IsString()
-    @Length(1, 20)
-    username: string;
+export class RegisterDto {
+  @IsString()
+  @Length(1, 20)
+  username: string;
 
-    @IsString()
-    @Length(4, 20)
-    password: string;
+  @IsString()
+  @Length(4, 20)
+  password: string;
 
-    @IsString()
-    name: string;
+  @IsString()
+  name: string;
 
-    @IsString()
-    email: string;
+  @IsString()
+  email: string;
 }
