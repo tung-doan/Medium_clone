@@ -38,6 +38,8 @@ export class AuthService {
         username: user.username,
         name: user.name ?? undefined,
         email: user.email,
+        bio: user.bio ?? undefined,
+        image: user.image ?? undefined,
         createdAt: user.createdAt,
         updatedAt: user.updatedAt,
       },
@@ -50,6 +52,8 @@ export class AuthService {
       name: registerDto.name ? registerDto.name : undefined,
       email: registerDto.email,
       password: await bcrypt.hash(registerDto.password, 10),
+      bio: registerDto.bio,
+      image: registerDto.image,
     };
 
     const user = await this.usersService.createUser(createUserDto);

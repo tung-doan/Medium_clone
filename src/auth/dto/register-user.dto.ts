@@ -1,4 +1,4 @@
-import { IsString, Length, IsEmail } from 'class-validator';
+import { IsString, Length, IsEmail, IsUrl, IsOptional } from 'class-validator';
 
 export class RegisterDto {
   @IsString()
@@ -14,4 +14,13 @@ export class RegisterDto {
 
   @IsEmail()
   email: string;
+
+  @IsOptional()
+  @IsString()
+  bio?: string;
+
+  @IsOptional()
+  @IsString()
+  @IsUrl()
+  image?: string;
 }
