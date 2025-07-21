@@ -5,7 +5,7 @@ import { UsersService } from 'src/users/users.service';
 import { LoginDto } from 'src/auth/dto/login-user.dto';
 import * as bcrypt from 'bcrypt';
 import { RegisterDto } from 'src/auth/dto/register-user.dto';
-import { Users } from 'src/users/users.model';
+
 import {
   LoginResponse,
   RegisterResponse,
@@ -20,9 +20,9 @@ export class AuthService {
   ) {}
 
   async login(loginDto: LoginDto): Promise<LoginResponse> {
-    const { username, password } = loginDto;
+    const { email, password } = loginDto;
     const user = await this.databaseService.users.findUnique({
-      where: { username },
+      where: { email },
     });
     if (!user) {
       throw new NotFoundException('User not found');
@@ -45,13 +45,14 @@ export class AuthService {
   }
 
   async register(registerDto: RegisterDto): Promise<RegisterResponse> {
-    const createUsers = new Users();
-    createUsers.username = registerDto.username;
-    createUsers.name = registerDto.name;
-    createUsers.email = registerDto.email;
-    createUsers.password = await bcrypt.hash(registerDto.password, 10);
+    const createUserDto = {
+      username: registerDto.username,
+      name: registerDto.name ? registerDto.name : undefined,
+      email: registerDto.email,
+      password: await bcrypt.hash(registerDto.password, 10),
+    };
 
-    const user = (await this.usersService.createUser(createUsers)) as Users;
+    const user = await this.usersService.createUser(createUserDto);
 
     return {
       token: this.jwtService.sign({ username: user.username }),

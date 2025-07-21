@@ -1,14 +1,8 @@
-/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import { AuthService } from 'src/auth/auth.service';
 import { Controller, Post, Body, Res, Req } from '@nestjs/common';
 import { LoginDto } from 'src/auth/dto/login-user.dto';
 import { Request, Response } from 'express';
 import { RegisterDto } from 'src/auth/dto/register-user.dto';
-import {
-  RegisterResponse,
-  LoginResponse,
-  ApiResponse,
-} from 'src/auth/interfaces/auth.interface';
 import { HttpStatus } from '@nestjs/common';
 
 @Controller('/api')
@@ -20,7 +14,7 @@ export class AuthController {
     @Req() request: Request,
     @Res() response: Response,
     @Body() loginDto: LoginDto,
-  ): Promise<ApiResponse<LoginResponse>> {
+  ) {
     try {
       const result = await this.authService.login(loginDto);
       return response.status(HttpStatus.OK).json({
@@ -46,7 +40,7 @@ export class AuthController {
     @Req() request: Request,
     @Res() response: Response,
     @Body() registerDto: RegisterDto,
-  ): Promise<ApiResponse<RegisterResponse>> {
+  ) {
     try {
       const result = await this.authService.register(registerDto);
       return response.status(HttpStatus.CREATED).json({

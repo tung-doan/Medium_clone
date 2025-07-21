@@ -8,17 +8,21 @@ export class UsersService {
   constructor(private readonly databaseService: DatabaseService) {}
 
   async createUser(data: CreateUserDto): Promise<Users> {
-    const existingUser = await this.databaseService.users.findUnique({
-      where: {
-        username: data.username,
-      },
-    });
-    if (existingUser) {
-      throw new ConflictException('username already exists');
-    }
-
+    await this.checkDuplicateUser(data);
     return this.databaseService.users.create({
       data,
     });
+  }
+
+  private async checkDuplicateUser(data: CreateUserDto): Promise<void> {
+    const [existingUser, existingEmail] = await Promise.all([
+      this.databaseService.users.findUnique({
+        where: { username: data.username },
+      }),
+      this.databaseService.users.findUnique({ where: { email: data.email } }),
+    ]);
+
+    if (existingUser) throw new ConflictException('Username already exists');
+    if (existingEmail) throw new ConflictException('Email already exists');
   }
 }
