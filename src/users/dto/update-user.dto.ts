@@ -29,6 +29,11 @@ export class UpdateUserDto {
 
   @IsOptional()
   @IsString()
+  @Length(4, 20)
+  confirmPassword?: string;
+
+  @IsOptional()
+  @IsString()
   @IsUrl()
   image?: string;
 }

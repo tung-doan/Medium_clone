@@ -52,8 +52,6 @@ export class AuthService {
       name: registerDto.name ? registerDto.name : undefined,
       email: registerDto.email,
       password: await bcrypt.hash(registerDto.password, 10),
-      bio: registerDto.bio,
-      image: registerDto.image,
     };
 
     const user = await this.usersService.createUser(createUserDto);
