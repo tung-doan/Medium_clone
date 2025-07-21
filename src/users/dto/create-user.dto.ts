@@ -1,6 +1,16 @@
+import { IsString, IsEmail, IsOptional } from 'class-validator';
+
 export class CreateUserDto {
-  name: string;
+  @IsOptional()
+  @IsString()
+  name?: string;
+
+  @IsString()
+  username: string;
+
+  @IsEmail()
   email: string;
+
+  @IsString()
   password: string;
-  age?: number; // Optional field
 }
