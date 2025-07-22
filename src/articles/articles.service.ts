@@ -1,10 +1,10 @@
-import { Injectable, ForbiddenException, BadRequestException } from '@nestjs/common';
+import { Injectable, ForbiddenException, BadRequestException, NotFoundException } from '@nestjs/common';
 import { CreateArticleDto } from './dto/create-article.dto';
 import { UpdateArticleDto } from './dto/update-article.dto';
 import { DatabaseService } from '../database/database.service';
 import { Prisma } from '@prisma/client';
 import slugify from 'slugify';
-import {ArticleResponse, ArticleListResponse} from './entities/article.entity'
+import {ArticleResponse, ArticleListResponse, ArticleWithRelations} from './entities/article.entity'
 
 @Injectable()
 export class ArticlesService {
@@ -118,12 +118,11 @@ export class ArticlesService {
     favorited?: string,
     currentUserId?: number
   ): Promise<ArticleListResponse> {
-    const whereConditions: any = {};
+    const whereConditions: Prisma.ArticlesWhereInput = {};
 
-    // Filter by tag using string contains (fast query)
     if (tag) {
       whereConditions.tagList = {
-        contains: tag, // Fast string search: WHERE tagList LIKE '%tag%'
+        contains: tag, 
       };
     }
 
@@ -150,6 +149,7 @@ export class ArticlesService {
         include: {
           author: {
             select: {
+              id: true,
               username: true,
               bio: true,
               image: true,
@@ -162,7 +162,7 @@ export class ArticlesService {
           },
         },
         orderBy: {
-          createdAt: 'desc', // Most recent first
+          createdAt: 'desc', 
         },
         take: limit,
         skip: offset,
@@ -172,11 +172,28 @@ export class ArticlesService {
       }),
     ]);
 
-    const articlesWithStatus = articles.map(article => 
-      this.transformArticleResponse(
-        article, 
-        currentUserId ? article.favorited.some(fav => fav.userId === currentUserId) : false
-      )
+    const articlesWithStatus = await Promise.all(
+      articles.map(async (article) => {
+        const favorited = currentUserId 
+          ? article.favorited.some(fav => fav.userId === currentUserId)
+          : false;
+
+        // Check if current user is following the author
+        let following = false;
+        if (currentUserId && currentUserId !== article.author.id) {
+          const followRelation = await this.databaseService.follow.findUnique({
+            where: {
+              followerId_followingId: {
+                followerId: currentUserId,
+                followingId: article.author.id,
+              },
+            },
+          });
+          following = !!followRelation;
+        }
+
+        return this.transformArticleResponse(article, favorited, following);
+      })
     );
 
     return {
@@ -185,16 +202,15 @@ export class ArticlesService {
     };
   }
 
-  private transformArticleResponse(article: any, favorited: boolean): ArticleResponse {
+  private transformArticleResponse(article: ArticleWithRelations, favorited: boolean, following:boolean): ArticleResponse {
     // Convert tagList string back to array for API response
     const tagList = article.tagList 
       ? article.tagList.split(',').filter((tag: string) => tag.trim().length > 0)
       : [];
 
     return {
-      id: article.id,
       title: article.title,
-      description: article.description,
+      description: article.description || undefined,
       body: article.body,
       slug: article.slug,
       authorId: article.authorId,
@@ -202,18 +218,120 @@ export class ArticlesService {
       createdAt: article.createdAt,
       updatedAt: article.updatedAt,
       author: {
+        id: article.id,
         username: article.author.username,
-        bio: article.author.bio,
-        image: article.author.image,
-        following: false, // For now, always false (TODO: implement following)
+        bio: article.author.bio || undefined,
+        image: article.author.image || undefined,
+        following, 
       },
       favorited,
-      tagList, // Return as array for API compatibility
+      tagList, 
     };
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} article`;
+  async getFeed(
+    userId: number, 
+    limit = 20, 
+    offset = 0
+  ): Promise<ArticleListResponse> {
+    const [articles, totalCount] = await Promise.all([
+      this.databaseService.articles.findMany({
+        where: {
+          author: {
+            followers: {
+              some: {
+                followerId: userId,
+              },
+            },
+          },
+        },
+        include: {
+          author: {
+            select: {
+              id: true,
+              username: true,
+              bio: true,
+              image: true,
+            },
+          },
+          favorited: {
+            select: {
+              userId: true,
+            },
+          },
+        },
+        orderBy: {
+          createdAt: 'desc',
+        },
+        take: limit,
+        skip: offset,
+      }),
+      this.databaseService.articles.count({
+        where: {
+          author: {
+            followers: {
+              some: {
+                followerId: userId,
+              },
+            },
+          },
+        },
+      }),
+    ]);
+
+    const articlesWithStatus = articles.map(article => {
+      const favorited = article.favorited.some(fav => fav.userId === userId);
+      return this.transformArticleResponse(article, favorited, true); 
+    });
+
+    return {
+      articles: articlesWithStatus,
+      articlesCount: totalCount,
+    };
+  }
+  async findOne(slug: string, currentUserId?: number): Promise<ArticleResponse> {
+    const article = await this.databaseService.articles.findUnique({
+      where: { slug },
+      include: {
+        author: {
+          select: {
+            id: true,
+            username: true,
+            bio: true,
+            image: true,
+          },
+        },
+        favorited: {
+          select: {
+            userId: true,
+          },
+        },
+      },
+    });
+
+    if (!article) {
+      throw new NotFoundException('Article not found');
+    }
+
+    const favorited = currentUserId 
+      ? article.favorited.some(fav => fav.userId === currentUserId) 
+      : false;
+
+    // Check if current user is following the author
+    let following = false;
+    if (currentUserId && currentUserId !== article.author.id) {
+      const followRelation = await this.databaseService.follow.findUnique({
+        where: {
+          followerId_followingId: {
+            followerId: currentUserId,
+            followingId: article.author.id,
+          },
+        },
+      });
+      following = !!followRelation;
+    }
+
+    return this.transformArticleResponse(article, favorited, following);
   }
 
   update(id: number, updateArticleDto: UpdateArticleDto) {
