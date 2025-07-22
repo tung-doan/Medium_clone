@@ -38,6 +38,8 @@ export class AuthService {
         username: user.username,
         name: user.name ?? undefined,
         email: user.email,
+        bio: user.bio ?? undefined,
+        image: user.image ?? undefined,
         createdAt: user.createdAt,
         updatedAt: user.updatedAt,
       },
@@ -55,7 +57,7 @@ export class AuthService {
     const user = await this.usersService.createUser(createUserDto);
 
     return {
-      token: this.jwtService.sign({ username: user.username }),
+      token: this.jwtService.sign({ id: user.id, username: user.username }),
     };
   }
 }

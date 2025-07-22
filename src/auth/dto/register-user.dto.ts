@@ -10,7 +10,8 @@ export class RegisterDto {
   password: string;
 
   @IsString()
-  name: string;
+  @Length(1, 45)
+  name?: string;
 
   @IsEmail()
   email: string;

@@ -3,6 +3,8 @@ export interface UserResponse {
   username: string;
   name?: string;
   email: string;
+  bio?: string;
+  image?: string;
   createdAt: Date;
   updatedAt: Date;
 }
