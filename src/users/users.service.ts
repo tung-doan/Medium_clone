@@ -28,7 +28,7 @@ export class UsersService {
     if (!user) {
       throw new NotFoundException(`User with ID ${id} not found`);
     }
-    // Kiểm tra confirmpassword nếu password có đổi
+    
     if (data.password) {
       if (!data.confirmPassword) {
         throw new BadRequestException('Password confirmation is required when updating password');
