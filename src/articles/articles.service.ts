@@ -4,6 +4,7 @@ import { UpdateArticleDto } from './dto/update-article.dto';
 import { DatabaseService } from '../database/database.service';
 import { Prisma } from '@prisma/client';
 import slugify from 'slugify';
+import {ArticleResponse, ArticleListResponse} from './entities/article.entity'
 
 @Injectable()
 export class ArticlesService {
@@ -109,8 +110,106 @@ export class ArticlesService {
       }
       }
     }
-  findAll() {
-    return `This action returns all articles`;
+  async findAll(
+    limit = 20,
+    offset = 0,
+    tag?: string,
+    author?: string,
+    favorited?: string,
+    currentUserId?: number
+  ): Promise<ArticleListResponse> {
+    const whereConditions: any = {};
+
+    // Filter by tag using string contains (fast query)
+    if (tag) {
+      whereConditions.tagList = {
+        contains: tag, // Fast string search: WHERE tagList LIKE '%tag%'
+      };
+    }
+
+    // Filter by author username
+    if (author) {
+      whereConditions.author = {
+        username: author,
+      };
+    }
+
+    if (favorited) {
+      whereConditions.favorited = {
+        some: {
+          user: {
+            username: favorited,
+          },
+        },
+      };
+    }
+
+    const [articles, totalCount] = await Promise.all([
+      this.databaseService.articles.findMany({
+        where: whereConditions,
+        include: {
+          author: {
+            select: {
+              username: true,
+              bio: true,
+              image: true,
+            },
+          },
+          favorited: {
+            select: {
+              userId: true,
+            },
+          },
+        },
+        orderBy: {
+          createdAt: 'desc', // Most recent first
+        },
+        take: limit,
+        skip: offset,
+      }),
+      this.databaseService.articles.count({
+        where: whereConditions,
+      }),
+    ]);
+
+    const articlesWithStatus = articles.map(article => 
+      this.transformArticleResponse(
+        article, 
+        currentUserId ? article.favorited.some(fav => fav.userId === currentUserId) : false
+      )
+    );
+
+    return {
+      articles: articlesWithStatus,
+      articlesCount: totalCount,
+    };
+  }
+
+  private transformArticleResponse(article: any, favorited: boolean): ArticleResponse {
+    // Convert tagList string back to array for API response
+    const tagList = article.tagList 
+      ? article.tagList.split(',').filter((tag: string) => tag.trim().length > 0)
+      : [];
+
+    return {
+      id: article.id,
+      title: article.title,
+      description: article.description,
+      body: article.body,
+      slug: article.slug,
+      authorId: article.authorId,
+      favoritesCount: article.favoritesCount,
+      createdAt: article.createdAt,
+      updatedAt: article.updatedAt,
+      author: {
+        username: article.author.username,
+        bio: article.author.bio,
+        image: article.author.image,
+        following: false, // For now, always false (TODO: implement following)
+      },
+      favorited,
+      tagList, // Return as array for API compatibility
+    };
   }
 
   findOne(id: number) {
