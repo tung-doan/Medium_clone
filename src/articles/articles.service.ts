@@ -194,7 +194,20 @@ export class ArticlesService {
           following = !!followRelation;
         }
 
-        return this.transformArticleResponse(article, favorited, following);
+        const mappedArticle = {
+          ...article,
+          author: {
+            ...article.author,
+            bio: article.author.bio ?? undefined,
+            image: article.author.image ?? undefined,
+          },
+        };
+
+        return this.transformArticleResponse(
+          mappedArticle,
+          favorited,
+          following,
+        );
       }),
     );
 
@@ -289,7 +302,15 @@ export class ArticlesService {
 
     const articlesWithStatus = articles.map((article) => {
       const favorited = article.favorited.some((fav) => fav.userId === userId);
-      return this.transformArticleResponse(article, favorited, true);
+      const mappedArticle = {
+        ...article,
+        author: {
+          ...article.author,
+          bio: article.author.bio ?? undefined,
+          image: article.author.image ?? undefined,
+        },
+      };
+      return this.transformArticleResponse(mappedArticle, favorited, true);
     });
 
     return {
@@ -323,7 +344,7 @@ export class ArticlesService {
     if (!article) {
       throw new NotFoundException('Article not found');
     }
-
+    // favorited: boolean - true nếu user hiện tại đã favorite bài viết, false nếu chưa
     const favorited = currentUserId
       ? article.favorited.some((fav) => fav.userId === currentUserId)
       : false;
@@ -341,7 +362,16 @@ export class ArticlesService {
       following = !!followRelation;
     }
 
-    return this.transformArticleResponse(article, favorited, following);
+    const mappedArticle = {
+      ...article,
+      author: {
+        ...article.author,
+        bio: article.author.bio ?? undefined,
+        image: article.author.image ?? undefined,
+      },
+    };
+
+    return this.transformArticleResponse(mappedArticle, favorited, following);
   }
 
   async update(
@@ -468,8 +498,16 @@ export class ArticlesService {
     );
 
     const following = false;
+    const mappedArticle = {
+      ...updatedArticle,
+      author: {
+        ...updatedArticle.author,
+        bio: updatedArticle.author.bio ?? undefined,
+        image: updatedArticle.author.image ?? undefined,
+      },
+    };
 
-    return this.transformArticleResponse(updatedArticle, favorited, following);
+    return this.transformArticleResponse(mappedArticle, favorited, following);
   }
 
   private createSlug(title: string): string {

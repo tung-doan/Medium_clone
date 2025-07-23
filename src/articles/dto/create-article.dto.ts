@@ -9,6 +9,7 @@ export class CreateArticleDto {
   @IsOptional()
   @IsString()
   @Length(1, 500)
+  @IsNotEmpty()
   description?: string;
 
   @IsString()

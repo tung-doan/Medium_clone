@@ -31,7 +31,7 @@ export interface ArticleAuthor {
   username: string;
   bio?: string;
   image?: string;
-  following: boolean;
+  following?: boolean;
 }
 
 export interface ArticleCreateData {
@@ -55,13 +55,8 @@ export interface ArticleWithRelations {
   createdAt: Date;
   updatedAt: Date;
   tagList: string;
-  author: {
-    id: number;
-    username: string;
-    bio: string | null;
-    image: string | null;
-  };
-  favorited: Array<{
+  author: ArticleAuthor;
+  favorited: Array<{    // Kiểm tra xem userid hiện tại có trong mảng favorited hay không từ đấy xác định được favourite trong ArticleResponse
     userId: number;
   }>;
 }
