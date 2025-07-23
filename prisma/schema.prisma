@@ -23,4 +23,84 @@ model Users {
   image     String?   @db.VarChar(255)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  articles Articles[] // 1 users - N articles
+  favorites Favorites[] // N user - N articles
+  following Follow[] @relation("UserFollowing") 
+  followers Follow[] @relation("UserFollowers") 
+}
+
+model Articles {
+  id          Int      @id @default(autoincrement())
+  title       String   @db.VarChar(255)
+  description String?  @db.VarChar(500)
+  body        String   @db.Text
+  tagList     String   @default("[]")
+  slug        String   @unique @db.VarChar(300)
+  authorId    Int
+  favoritesCount Int   @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  author      Users    @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  favorited  Favorites[] // N articles - N users
+  articleTags    ArticleTags[] @relation("ArticleToTags") // N articles - N tag
+
+  @@map("articles")
+}
+
+model Tags {
+  id          Int      @id @default(autoincrement())
+  name        String   @unique @db.VarChar(50)
+  slug        String   @unique @db.VarChar(60) // For URL-friendly tag names
+  description String?  @db.VarChar(200)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  articleTags ArticleTags[] @relation("TagToArticles")
+
+  @@map("tags")
+}
+
+model ArticleTags {
+  id        Int      @id @default(autoincrement())
+  articleId Int
+  tagId     Int
+  createdAt DateTime @default(now())
+
+  // Relations
+  article Articles @relation("ArticleToTags", fields: [articleId], references: [id], onDelete: Cascade)
+  tag     Tags     @relation("TagToArticles", fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@unique([articleId, tagId])
+  @@map("article_tags")
+}
+
+model Favorites {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  articleId Int
+  createdAt DateTime @default(now())
+
+  // Relations
+  user    Users    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  article Articles @relation(fields: [articleId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, articleId])
+  @@map("favorites")
+}
+
+model Follow {
+  id          Int      @id @default(autoincrement())
+  followerId  Int      // User who is following
+  followingId Int      // User being followed
+  createdAt   DateTime @default(now())
+
+  // Relations
+  follower  Users @relation("UserFollowing", fields: [followerId], references: [id], onDelete: Cascade)
+  following Users @relation("UserFollowers", fields: [followingId], references: [id], onDelete: Cascade)
+
+  @@unique([followerId, followingId])
+  @@map("follows")
 }
