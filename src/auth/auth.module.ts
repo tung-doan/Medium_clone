@@ -7,7 +7,6 @@ import { JwtStrategy } from 'src/auth/jwt.strategy';
 import { DatabaseService } from 'src/database/database.service';
 import { UsersModule } from 'src/users/users.module';
 import { UsersService } from 'src/users/users.service';
-
 @Module({
   controllers: [AuthController],
   providers: [AuthService, JwtStrategy, UsersService, DatabaseService],

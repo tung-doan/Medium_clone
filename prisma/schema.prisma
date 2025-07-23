@@ -27,6 +27,7 @@ model Users {
   favorites Favorites[] // N user - N articles
   following Follow[] @relation("UserFollowing") 
   followers Follow[] @relation("UserFollowers") 
+  Comments Comments[]
 }
 
 model Articles {
@@ -47,6 +48,7 @@ model Articles {
   articleTags    ArticleTags[] @relation("ArticleToTags") // N articles - N tag
 
   @@map("articles")
+  comments Comments[]
 }
 
 model Tags {
@@ -103,4 +105,16 @@ model Follow {
 
   @@unique([followerId, followingId])
   @@map("follows")
+}
+
+model Comments {
+  id        Int      @id @default(autoincrement())
+  body      String
+  articleId Int
+  authorId  Int
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  article   Articles @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  author    Users    @relation(fields: [authorId], references: [id], onDelete: Cascade)
 }
