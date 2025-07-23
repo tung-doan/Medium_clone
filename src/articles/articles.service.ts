@@ -1,10 +1,20 @@
-import { Injectable, ForbiddenException, BadRequestException, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  ForbiddenException,
+  BadRequestException,
+  NotFoundException,
+  ConflictException,
+} from '@nestjs/common';
 import { CreateArticleDto } from './dto/create-article.dto';
 import { UpdateArticleDto } from './dto/update-article.dto';
 import { DatabaseService } from '../database/database.service';
 import { Prisma } from '@prisma/client';
 import slugify from 'slugify';
-import {ArticleResponse, ArticleListResponse, ArticleWithRelations} from './entities/article.entity'
+import {
+  ArticleResponse,
+  ArticleListResponse,
+  ArticleWithRelations,
+} from './entities/article.entity';
 
 @Injectable()
 export class ArticlesService {
@@ -47,7 +57,8 @@ export class ArticlesService {
           },
         });
 
-        if (tagList && tagList.length > 0) { // Fix: check tagList directly
+        if (tagList && tagList.length > 0) {
+          // Fix: check tagList directly
           await this.handleArticleTags(
             prisma,
             createdArticle.id,
@@ -74,9 +85,9 @@ export class ArticlesService {
   ): Promise<void> {
     for (const tagName of tagNames) {
       const trimmedTagName = tagName.trim(); // Remove any whitespace
-      
+
       if (!trimmedTagName) continue; // Skip empty tags
-      
+
       const tagSlug = slugify(trimmedTagName, { lower: true, strict: true });
 
       // Find or create tag
@@ -108,21 +119,21 @@ export class ArticlesService {
             : String(error);
         throw new BadRequestException(`Tag relation error: ${errorMessage}`);
       }
-      }
     }
+  }
   async findAll(
     limit = 20,
     offset = 0,
     tag?: string,
     author?: string,
     favorited?: string,
-    currentUserId?: number
+    currentUserId?: number,
   ): Promise<ArticleListResponse> {
     const whereConditions: Prisma.ArticlesWhereInput = {};
 
     if (tag) {
       whereConditions.tagList = {
-        contains: tag, 
+        contains: tag,
       };
     }
 
@@ -162,7 +173,7 @@ export class ArticlesService {
           },
         },
         orderBy: {
-          createdAt: 'desc', 
+          createdAt: 'desc',
         },
         take: limit,
         skip: offset,
@@ -174,8 +185,8 @@ export class ArticlesService {
 
     const articlesWithStatus = await Promise.all(
       articles.map(async (article) => {
-        const favorited = currentUserId 
-          ? article.favorited.some(fav => fav.userId === currentUserId)
+        const favorited = currentUserId
+          ? article.favorited.some((fav) => fav.userId === currentUserId)
           : false;
 
         // Check if current user is following the author
@@ -193,7 +204,7 @@ export class ArticlesService {
         }
 
         return this.transformArticleResponse(article, favorited, following);
-      })
+      }),
     );
 
     return {
@@ -202,13 +213,20 @@ export class ArticlesService {
     };
   }
 
-  private transformArticleResponse(article: ArticleWithRelations, favorited: boolean, following:boolean): ArticleResponse {
+  private transformArticleResponse(
+    article: ArticleWithRelations,
+    favorited: boolean,
+    following: boolean,
+  ): ArticleResponse {
     // Convert tagList string back to array for API response
-    const tagList = article.tagList 
-      ? article.tagList.split(',').filter((tag: string) => tag.trim().length > 0)
+    const tagList = article.tagList
+      ? article.tagList
+          .split(',')
+          .filter((tag: string) => tag.trim().length > 0)
       : [];
 
     return {
+      id: article.id,
       title: article.title,
       description: article.description || undefined,
       body: article.body,
@@ -222,17 +240,17 @@ export class ArticlesService {
         username: article.author.username,
         bio: article.author.bio || undefined,
         image: article.author.image || undefined,
-        following, 
+        following,
       },
       favorited,
-      tagList, 
+      tagList,
     };
   }
 
   async getFeed(
-    userId: number, 
-    limit = 20, 
-    offset = 0
+    userId: number,
+    limit = 20,
+    offset = 0,
   ): Promise<ArticleListResponse> {
     const [articles, totalCount] = await Promise.all([
       this.databaseService.articles.findMany({
@@ -279,9 +297,9 @@ export class ArticlesService {
       }),
     ]);
 
-    const articlesWithStatus = articles.map(article => {
-      const favorited = article.favorited.some(fav => fav.userId === userId);
-      return this.transformArticleResponse(article, favorited, true); 
+    const articlesWithStatus = articles.map((article) => {
+      const favorited = article.favorited.some((fav) => fav.userId === userId);
+      return this.transformArticleResponse(article, favorited, true);
     });
 
     return {
@@ -289,7 +307,10 @@ export class ArticlesService {
       articlesCount: totalCount,
     };
   }
-  async findOne(slug: string, currentUserId?: number): Promise<ArticleResponse> {
+  async findOne(
+    slug: string,
+    currentUserId?: number,
+  ): Promise<ArticleResponse> {
     const article = await this.databaseService.articles.findUnique({
       where: { slug },
       include: {
@@ -313,8 +334,8 @@ export class ArticlesService {
       throw new NotFoundException('Article not found');
     }
 
-    const favorited = currentUserId 
-      ? article.favorited.some(fav => fav.userId === currentUserId) 
+    const favorited = currentUserId
+      ? article.favorited.some((fav) => fav.userId === currentUserId)
       : false;
 
     // Check if current user is following the author
@@ -334,12 +355,143 @@ export class ArticlesService {
     return this.transformArticleResponse(article, favorited, following);
   }
 
-  update(id: number, updateArticleDto: UpdateArticleDto) {
-    return `This action updates a #${id} article`;
+  async update(
+    slug: string,
+    updateArticleDto: UpdateArticleDto,
+    currentUserId: number,
+  ): Promise<ArticleResponse> {
+    // Find the article
+    const existingArticle = await this.databaseService.articles.findUnique({
+      where: { slug },
+      include: {
+        author: {
+          select: {
+            id: true,
+            username: true,
+            bio: true,
+            image: true,
+          },
+        },
+        favorited: {
+          select: {
+            userId: true,
+          },
+        },
+      },
+    });
+
+    if (!existingArticle) {
+      throw new NotFoundException('Article not found');
+    }
+
+    if (existingArticle.authorId !== currentUserId) {
+      throw new ForbiddenException('You can only update your own articles');
+    }
+
+    // Check if title is being updated and if new slug would conflict
+    let newSlug = existingArticle.slug;
+    if (
+      updateArticleDto.title &&
+      updateArticleDto.title !== existingArticle.title
+    ) {
+      newSlug = this.createSlug(updateArticleDto.title);
+
+      const slugConflict = await this.databaseService.articles.findUnique({
+        where: { slug: newSlug },
+      });
+
+      if (slugConflict && slugConflict.id !== existingArticle.id) {
+        throw new ConflictException(
+          'An article with this title already exists',
+        );
+      }
+    }
+
+    const updatedArticle = await this.databaseService.$transaction(
+      async (prisma: Prisma.TransactionClient) => {
+        // Prepare update data
+        const updateData: {
+          title?: string;
+          description?: string;
+          body?: string;
+          tagList?: string;
+          slug?: string;
+        } = {};
+
+        if (updateArticleDto.title) {
+          updateData.title = updateArticleDto.title;
+          updateData.slug = newSlug;
+        }
+
+        if (updateArticleDto.description !== undefined) {
+          updateData.description = updateArticleDto.description;
+        }
+
+        if (updateArticleDto.body) {
+          updateData.body = updateArticleDto.body;
+        }
+
+        if (updateArticleDto.tagList !== undefined) {
+          const tagListString =
+            updateArticleDto.tagList && updateArticleDto.tagList.length > 0
+              ? updateArticleDto.tagList.join(',')
+              : '';
+          updateData.tagList = tagListString;
+
+          // Remove existing article-tag relationships
+          await prisma.articleTags.deleteMany({
+            where: { articleId: existingArticle.id },
+          });
+
+          // Create new article-tag relationships
+          if (updateArticleDto.tagList && updateArticleDto.tagList.length > 0) {
+            await this.handleArticleTags(
+              prisma,
+              existingArticle.id,
+              updateArticleDto.tagList,
+            );
+          }
+        }
+
+        const updatedArticle = await prisma.articles.update({
+          where: { id: existingArticle.id },
+          data: updateData,
+          include: {
+            author: {
+              select: {
+                id: true,
+                username: true,
+                bio: true,
+                image: true,
+              },
+            },
+            favorited: {
+              select: {
+                userId: true,
+              },
+            },
+          },
+        });
+
+        return updatedArticle;
+      },
+    );
+
+    const favorited = updatedArticle.favorited.some(
+      (fav) => fav.userId === currentUserId,
+    );
+
+    // Check if current user is following the author (should be false since it's own article)
+    const following = false; // User can't follow themselves
+
+    return this.transformArticleResponse(updatedArticle, favorited, following);
+  }
+
+  private createSlug(title: string): string {
+    return slugify(title, { lower: true, strict: true }) + '-' + Date.now();
   }
 
   remove(id: number) {
     return `This action removes a #${id} article`;
   }
 }
-

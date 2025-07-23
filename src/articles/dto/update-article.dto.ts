@@ -1,4 +1,28 @@
-import { PartialType } from '@nestjs/mapped-types';
-import { CreateArticleDto } from './create-article.dto';
+import { IsString, IsOptional, IsArray, Length, IsNotEmpty } from 'class-validator';
 
-export class UpdateArticleDto extends PartialType(CreateArticleDto) {}
+export class UpdateArticleDto {
+  @IsOptional()
+  @IsString()
+  @IsNotEmpty()
+  @Length(1, 255)
+  title?: string;
+
+  @IsOptional()
+  @IsString()
+  @Length(0, 500)
+  description?: string;
+
+  @IsOptional()
+  @IsString()
+  @IsNotEmpty()
+  body?: string;
+
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  @Length(1, 50, { each: true })
+  tagList?: string[];
+
+  //field for internal use (not validated from API)
+  slug?: string;
+}

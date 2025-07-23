@@ -3,7 +3,6 @@ import {
   Get,
   Post,
   Body,
-  Patch,
   Param,
   Delete,
   UseGuards,
@@ -11,6 +10,7 @@ import {
   Res,
   HttpStatus,
   Query,
+  Put
 } from '@nestjs/common';
 import { ArticlesService } from './articles.service';
 import { CreateArticleDto } from './dto/create-article.dto';
@@ -150,11 +150,44 @@ export class ArticlesController {
     }
   }
 
-  @Patch(':id')
-  update(@Param('id') id: string, @Body() updateArticleDto: UpdateArticleDto) {
-    return this.articlesService.update(+id, updateArticleDto);
+  @UseGuards(JwtAuthGuard)
+  @Put(':slug')
+  async update(
+    @Param('slug') slug: string,
+    @Body() updateArticleDto: UpdateArticleDto,
+    @Req() request: AuthenticatedRequest,
+    @Res() response: Response,
+  ) {
+    try {
+      const article = await this.articlesService.update(
+        slug,
+        updateArticleDto,
+        request.user.id,
+      );
+      
+      return response.status(HttpStatus.OK).json({
+        article,
+      });
+    } catch (error) {
+      let errorMessage = 'An unknown error occurred';
+      let statusCode = HttpStatus.INTERNAL_SERVER_ERROR;
+      
+      if (error instanceof Error) {
+        errorMessage = error.message;
+        if (error.message === 'Article not found') {
+          statusCode = HttpStatus.NOT_FOUND;
+        } else if (error.message.includes('You can only update') || error.message.includes('already exists')) {
+          statusCode = HttpStatus.FORBIDDEN;
+        }
+      }
+      
+      return response.status(statusCode).json({
+        errors: {
+          body: [errorMessage],
+        },
+      });
+    }
   }
-
   @Delete(':id')
   remove(@Param('id') id: string) {
     return this.articlesService.remove(+id);
