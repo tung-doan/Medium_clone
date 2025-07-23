@@ -3,14 +3,14 @@ import {
   ConflictException,
   NotFoundException,
   BadRequestException,
-  ForbiddenException
+  ForbiddenException,
 } from '@nestjs/common';
 import { RegisterDto } from 'src/auth/dto/register-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { DatabaseService } from '../database/database.service'; // Adjust the path as needed
 import * as bcrypt from 'bcrypt';
 import { Users } from './users.model';
-import {UserProfile, FollowResponse} from './entities/user.entity';
+import { UserProfile, FollowResponse } from './entities/user.entity';
 
 @Injectable()
 export class UsersService {
@@ -30,19 +30,25 @@ export class UsersService {
     if (!user) {
       throw new NotFoundException(`User with ID ${id} not found`);
     }
-    
+
     if (data.password) {
       if (!data.confirmPassword) {
-        throw new BadRequestException('Password confirmation is required when updating password');
+        throw new BadRequestException(
+          'Password confirmation is required when updating password',
+        );
       }
 
       if (data.password !== data.confirmPassword) {
-        throw new BadRequestException('Password and confirmation password do not match');
+        throw new BadRequestException(
+          'Password and confirmation password do not match',
+        );
       }
 
       const isSamePassword = await bcrypt.compare(data.password, user.password);
       if (isSamePassword) {
-        throw new BadRequestException('New password must be different from current password');
+        throw new BadRequestException(
+          'New password must be different from current password',
+        );
       }
     }
 
@@ -116,7 +122,10 @@ export class UsersService {
     }
   }
 
-  async getUserProfile(username: string, currentUserId?: number): Promise<UserProfile> {
+  async getUserProfile(
+    username: string,
+    currentUserId?: number,
+  ): Promise<UserProfile> {
     const user = await this.databaseService.users.findUnique({
       where: { username },
       select: {
@@ -154,7 +163,10 @@ export class UsersService {
     };
   }
 
-  async followUser(currentUserId: number, targetUsername: string): Promise<FollowResponse> {
+  async followUser(
+    currentUserId: number,
+    targetUsername: string,
+  ): Promise<FollowResponse> {
     // Find target user
     const targetUser = await this.databaseService.users.findUnique({
       where: { username: targetUsername },
@@ -164,12 +176,10 @@ export class UsersService {
       throw new NotFoundException('User not found');
     }
 
-    // Prevent self-follow
     if (currentUserId === targetUser.id) {
       throw new ForbiddenException('You cannot follow yourself');
     }
 
-    // Check if already following
     const existingFollow = await this.databaseService.follow.findUnique({
       where: {
         followerId_followingId: {
@@ -199,7 +209,10 @@ export class UsersService {
     };
   }
 
-  async unfollowUser(currentUserId: number, targetUsername: string): Promise<FollowResponse> {
+  async unfollowUser(
+    currentUserId: number,
+    targetUsername: string,
+  ): Promise<FollowResponse> {
     const targetUser = await this.databaseService.users.findUnique({
       where: { username: targetUsername },
     });
@@ -208,7 +221,6 @@ export class UsersService {
       throw new NotFoundException('User not found');
     }
 
-    // Check if following
     const existingFollow = await this.databaseService.follow.findUnique({
       where: {
         followerId_followingId: {

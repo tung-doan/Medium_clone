@@ -1,3 +1,5 @@
+import { Users } from "@prisma/client";
+
 export type ArticleResponse = {
   id: number;
   title: string;
@@ -62,4 +64,8 @@ export interface ArticleWithRelations {
   favorited: Array<{
     userId: number;
   }>;
+}
+
+export interface AuthenticatedRequest {
+  user: Users;
 }

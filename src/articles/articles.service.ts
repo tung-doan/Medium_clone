@@ -58,12 +58,7 @@ export class ArticlesService {
         });
 
         if (tagList && tagList.length > 0) {
-          // Fix: check tagList directly
-          await this.handleArticleTags(
-            prisma,
-            createdArticle.id,
-            tagList, // Fix: pass tagList directly (not undefined)
-          );
+          await this.handleArticleTags(prisma, createdArticle.id, tagList);
         }
 
         return createdArticle;
@@ -84,13 +79,12 @@ export class ArticlesService {
     tagNames: string[],
   ): Promise<void> {
     for (const tagName of tagNames) {
-      const trimmedTagName = tagName.trim(); // Remove any whitespace
+      const trimmedTagName = tagName.trim();
 
-      if (!trimmedTagName) continue; // Skip empty tags
+      if (!trimmedTagName) continue;
 
       const tagSlug = slugify(trimmedTagName, { lower: true, strict: true });
 
-      // Find or create tag
       let tag = await prisma.tags.findUnique({
         where: { name: trimmedTagName },
       });
@@ -104,7 +98,6 @@ export class ArticlesService {
         });
       }
 
-      // Create article-tag relationship (nếu chưa tồn tại)
       try {
         await prisma.articleTags.create({
           data: {
@@ -137,7 +130,6 @@ export class ArticlesService {
       };
     }
 
-    // Filter by author username
     if (author) {
       whereConditions.author = {
         username: author,
@@ -189,7 +181,6 @@ export class ArticlesService {
           ? article.favorited.some((fav) => fav.userId === currentUserId)
           : false;
 
-        // Check if current user is following the author
         let following = false;
         if (currentUserId && currentUserId !== article.author.id) {
           const followRelation = await this.databaseService.follow.findUnique({
@@ -218,7 +209,6 @@ export class ArticlesService {
     favorited: boolean,
     following: boolean,
   ): ArticleResponse {
-    // Convert tagList string back to array for API response
     const tagList = article.tagList
       ? article.tagList
           .split(',')
@@ -338,7 +328,6 @@ export class ArticlesService {
       ? article.favorited.some((fav) => fav.userId === currentUserId)
       : false;
 
-    // Check if current user is following the author
     let following = false;
     if (currentUserId && currentUserId !== article.author.id) {
       const followRelation = await this.databaseService.follow.findUnique({
@@ -360,7 +349,6 @@ export class ArticlesService {
     updateArticleDto: UpdateArticleDto,
     currentUserId: number,
   ): Promise<ArticleResponse> {
-    // Find the article
     const existingArticle = await this.databaseService.articles.findUnique({
       where: { slug },
       include: {
@@ -388,7 +376,6 @@ export class ArticlesService {
       throw new ForbiddenException('You can only update your own articles');
     }
 
-    // Check if title is being updated and if new slug would conflict
     let newSlug = existingArticle.slug;
     if (
       updateArticleDto.title &&
@@ -409,7 +396,6 @@ export class ArticlesService {
 
     const updatedArticle = await this.databaseService.$transaction(
       async (prisma: Prisma.TransactionClient) => {
-        // Prepare update data
         const updateData: {
           title?: string;
           description?: string;
@@ -481,8 +467,7 @@ export class ArticlesService {
       (fav) => fav.userId === currentUserId,
     );
 
-    // Check if current user is following the author (should be false since it's own article)
-    const following = false; // User can't follow themselves
+    const following = false;
 
     return this.transformArticleResponse(updatedArticle, favorited, following);
   }
@@ -491,7 +476,39 @@ export class ArticlesService {
     return slugify(title, { lower: true, strict: true }) + '-' + Date.now();
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} article`;
+  async remove(slug: string, currentUserId: number): Promise<void> {
+    const article = await this.databaseService.articles.findUnique({
+      where: { slug },
+      select: {
+        id: true,
+        authorId: true,
+        title: true,
+      },
+    });
+
+    if (!article) {
+      throw new NotFoundException('Article not found');
+    }
+
+    if (article.authorId !== currentUserId) {
+      throw new ForbiddenException('You can only delete your own articles');
+    }
+
+    await this.databaseService.$transaction(
+      async (prisma: Prisma.TransactionClient) => {
+        await Promise.all([
+          prisma.articleTags.deleteMany({
+            where: { articleId: article.id },
+          }),
+          prisma.favorites.deleteMany({
+            where: { articleId: article.id },
+          }),
+        ]);
+
+        await prisma.articles.delete({
+          where: { id: article.id },
+        });
+      },
+    );
   }
 }

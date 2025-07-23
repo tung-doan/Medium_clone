@@ -10,18 +10,14 @@ import {
   Res,
   HttpStatus,
   Query,
-  Put
+  Put,
 } from '@nestjs/common';
 import { ArticlesService } from './articles.service';
 import { CreateArticleDto } from './dto/create-article.dto';
 import { UpdateArticleDto } from './dto/update-article.dto';
 import { JwtAuthGuard } from 'src/auth/auth.guard';
-import { Users } from '@prisma/client';
 import { Request, Response } from 'express';
-
-interface AuthenticatedRequest {
-  user: Users;
-}
+import { AuthenticatedRequest } from './entities/article.entity';
 
 @Controller('/api/articles')
 export class ArticlesController {
@@ -57,7 +53,7 @@ export class ArticlesController {
 
   @Get()
   async findAll(
-    @Req() request: AuthenticatedRequest, // Optional auth
+    @Req() request: AuthenticatedRequest,
     @Res() response: Response,
     @Query('limit') limit?: string,
     @Query('offset') offset?: string,
@@ -75,7 +71,7 @@ export class ArticlesController {
         favorited,
         currentUserId,
       );
-      
+
       return response.status(HttpStatus.OK).json(result);
     } catch (error) {
       let errorMessage = 'An unknown error occurred';
@@ -104,7 +100,7 @@ export class ArticlesController {
         limit ? parseInt(limit) : 20,
         offset ? parseInt(offset) : 0,
       );
-      
+
       return response.status(HttpStatus.OK).json(result);
     } catch (error) {
       let errorMessage = 'An unknown error occurred';
@@ -122,7 +118,7 @@ export class ArticlesController {
   @Get(':slug')
   async findOne(
     @Param('slug') slug: string,
-    @Req() request: AuthenticatedRequest, // Optional auth
+    @Req() request: AuthenticatedRequest,
     @Res() response: Response,
   ) {
     try {
@@ -134,14 +130,14 @@ export class ArticlesController {
     } catch (error) {
       let errorMessage = 'An unknown error occurred';
       let statusCode = HttpStatus.INTERNAL_SERVER_ERROR;
-      
+
       if (error instanceof Error) {
         errorMessage = error.message;
         if (error.message === 'Article not found') {
           statusCode = HttpStatus.NOT_FOUND;
         }
       }
-      
+
       return response.status(statusCode).json({
         errors: {
           body: [errorMessage],
@@ -164,23 +160,26 @@ export class ArticlesController {
         updateArticleDto,
         request.user.id,
       );
-      
+
       return response.status(HttpStatus.OK).json({
         article,
       });
     } catch (error) {
       let errorMessage = 'An unknown error occurred';
       let statusCode = HttpStatus.INTERNAL_SERVER_ERROR;
-      
+
       if (error instanceof Error) {
         errorMessage = error.message;
         if (error.message === 'Article not found') {
           statusCode = HttpStatus.NOT_FOUND;
-        } else if (error.message.includes('You can only update') || error.message.includes('already exists')) {
+        } else if (
+          error.message.includes('You can only update') ||
+          error.message.includes('already exists')
+        ) {
           statusCode = HttpStatus.FORBIDDEN;
         }
       }
-      
+
       return response.status(statusCode).json({
         errors: {
           body: [errorMessage],
@@ -188,8 +187,37 @@ export class ArticlesController {
       });
     }
   }
-  @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.articlesService.remove(+id);
+  @UseGuards(JwtAuthGuard)
+  @Delete(':slug')
+  async remove(
+    @Param('slug') slug: string,
+    @Req() request: AuthenticatedRequest,
+    @Res() response: Response,
+  ) {
+    try {
+      await this.articlesService.remove(slug, request.user.id);
+
+      return response.status(HttpStatus.OK).json({
+        message: 'Article deleted successfully',
+      });
+    } catch (error) {
+      let errorMessage = 'An unknown error occurred';
+      let statusCode = HttpStatus.INTERNAL_SERVER_ERROR;
+
+      if (error instanceof Error) {
+        errorMessage = error.message;
+        if (error.message === 'Article not found') {
+          statusCode = HttpStatus.NOT_FOUND;
+        } else if (error.message.includes('You can only delete')) {
+          statusCode = HttpStatus.FORBIDDEN;
+        }
+      }
+
+      return response.status(statusCode).json({
+        errors: {
+          body: [errorMessage],
+        },
+      });
+    }
   }
 }

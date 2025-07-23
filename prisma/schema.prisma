@@ -25,8 +25,8 @@ model Users {
   updatedAt DateTime @updatedAt
   articles Articles[] // 1 users - N articles
   favorites Favorites[] // N user - N articles
-  following Follow[] @relation("UserFollowing") // Users I am following
-  followers Follow[] @relation("UserFollowers") // Users following me
+  following Follow[] @relation("UserFollowing") 
+  followers Follow[] @relation("UserFollowers") 
 }
 
 model Articles {
@@ -73,7 +73,6 @@ model ArticleTags {
   article Articles @relation("ArticleToTags", fields: [articleId], references: [id], onDelete: Cascade)
   tag     Tags     @relation("TagToArticles", fields: [tagId], references: [id], onDelete: Cascade)
 
-  // Unique constraint để prevent duplicate article-tag combinations
   @@unique([articleId, tagId])
   @@map("article_tags")
 }
@@ -88,7 +87,6 @@ model Favorites {
   user    Users    @relation(fields: [userId], references: [id], onDelete: Cascade)
   article Articles @relation(fields: [articleId], references: [id], onDelete: Cascade)
 
-  // Unique constraint để prevent duplicate favorites
   @@unique([userId, articleId])
   @@map("favorites")
 }
@@ -103,7 +101,6 @@ model Follow {
   follower  Users @relation("UserFollowing", fields: [followerId], references: [id], onDelete: Cascade)
   following Users @relation("UserFollowers", fields: [followingId], references: [id], onDelete: Cascade)
 
-  // Unique constraint để prevent duplicate follows và self-follow
   @@unique([followerId, followingId])
   @@map("follows")
 }
