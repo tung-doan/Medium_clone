@@ -549,4 +549,12 @@ export class ArticlesService {
       },
     );
   }
+
+  async getArticleBySlugOrThrow(slug: string) {
+    const article = await this.databaseService.articles.findUnique({
+      where: { slug },
+    });
+    if (!article) throw new NotFoundException('Article not found');
+    return article;
+  }
 }
