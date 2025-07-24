@@ -218,22 +218,7 @@ export class ArticlesService {
   }
 
   async favorite(slug: string, userId: number): Promise<ArticleResponse> {
-    const article = await this.databaseService.articles.findUnique({
-      where: { slug },
-      include: {
-        author: {
-          select: {
-            id: true,
-            username: true,
-            bio: true,
-            image: true,
-          },
-        },
-        favorited: {
-          select: { userId: true },
-        },
-      },
-    });
+    const article = await this.getArticleWithRelationsBySlug(slug);
     if (!article) throw new NotFoundException('Article not found');
 
     const alreadyFavorited = article.favorited.some(
@@ -297,22 +282,7 @@ export class ArticlesService {
   }
 
   async unfavorite(slug: string, userId: number): Promise<ArticleResponse> {
-    const article = await this.databaseService.articles.findUnique({
-      where: { slug },
-      include: {
-        author: {
-          select: {
-            id: true,
-            username: true,
-            bio: true,
-            image: true,
-          },
-        },
-        favorited: {
-          select: { userId: true },
-        },
-      },
-    });
+    const article = await this.getArticleWithRelationsBySlug(slug);
     if (!article) throw new NotFoundException('Article not found');
 
     const alreadyFavorited = article.favorited.some(
@@ -480,28 +450,8 @@ export class ArticlesService {
     slug: string,
     currentUserId?: number,
   ): Promise<ArticleResponse> {
-    const article = await this.databaseService.articles.findUnique({
-      where: { slug },
-      include: {
-        author: {
-          select: {
-            id: true,
-            username: true,
-            bio: true,
-            image: true,
-          },
-        },
-        favorited: {
-          select: {
-            userId: true,
-          },
-        },
-      },
-    });
-
-    if (!article) {
-      throw new NotFoundException('Article not found');
-    }
+    const article = await this.getArticleWithRelationsBySlug(slug);
+    if (!article) throw new NotFoundException('Article not found');
     // favorited: boolean - true nếu user hiện tại đã favorite bài viết, false nếu chưa
     const favorited = currentUserId
       ? article.favorited.some((fav) => fav.userId === currentUserId)
@@ -537,28 +487,8 @@ export class ArticlesService {
     updateArticleDto: UpdateArticleDto,
     currentUserId: number,
   ): Promise<ArticleResponse> {
-    const existingArticle = await this.databaseService.articles.findUnique({
-      where: { slug },
-      include: {
-        author: {
-          select: {
-            id: true,
-            username: true,
-            bio: true,
-            image: true,
-          },
-        },
-        favorited: {
-          select: {
-            userId: true,
-          },
-        },
-      },
-    });
-
-    if (!existingArticle) {
-      throw new NotFoundException('Article not found');
-    }
+    const existingArticle = await this.getArticleWithRelationsBySlug(slug);
+    if (!existingArticle) throw new NotFoundException('Article not found');
 
     if (existingArticle.authorId !== currentUserId) {
       throw new ForbiddenException('You can only update your own articles');
@@ -714,5 +644,24 @@ export class ArticlesService {
     });
     if (!article) throw new NotFoundException('Article not found');
     return article;
+  }
+
+  private async getArticleWithRelationsBySlug(slug: string) {
+    return await this.databaseService.articles.findUnique({
+      where: { slug },
+      include: {
+        author: {
+          select: {
+            id: true,
+            username: true,
+            bio: true,
+            image: true,
+          },
+        },
+        favorited: {
+          select: { userId: true },
+        },
+      },
+    });
   }
 }
