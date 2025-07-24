@@ -10,7 +10,7 @@ import { CreateCommentDto } from './dto/create-comment.dto';
 export class CommentsService {
   constructor(private readonly databaseService: DatabaseService) {}
 
-  async create(articleSlug: string, userId: number, dto: CreateCommentDto) {
+  async create(articleSlug: string, userId: number, createCommentDto: CreateCommentDto) {
     const article = await this.databaseService.articles.findUnique({
       where: { slug: articleSlug },
     });
@@ -18,7 +18,7 @@ export class CommentsService {
 
     const comment = await this.databaseService.comments.create({
       data: {
-        body: dto.body,
+        body: createCommentDto.body,
         articleId: article.id,
         authorId: userId,
       },
@@ -75,35 +75,44 @@ export class CommentsService {
       orderBy: { createdAt: 'asc' },
     });
 
-    // Map each comment to include following
-    const mappedComments = await Promise.all(
-      comments.map(async (comment) => {
-        let following = false;
-        if (currentUserId && currentUserId !== comment.author.id) {
-          const follow = await this.databaseService.follow.findUnique({
-            where: {
-              followerId_followingId: {
-                followerId: currentUserId,
-                followingId: comment.author.id,
-              },
-            },
-          });
-          following = !!follow;
-        }
-        return {
-          id: comment.id,
-          createdAt: comment.createdAt,
-          updatedAt: comment.updatedAt,
-          body: comment.body,
-          author: {
-            username: comment.author.username,
-            bio: comment.author.bio ?? undefined,
-            image: comment.author.image ?? undefined,
-            following,
-          },
-        };
-      }),
-    );
+    const authorIds = comments.map((c) => c.author.id);
+
+    let followingMap: Record<number, boolean> = {};
+    if (currentUserId) {
+      const follows = await this.databaseService.follow.findMany({
+        where: {
+          followerId: currentUserId,
+          followingId: { in: authorIds.filter((id) => id !== currentUserId) },
+        },
+        select: { followingId: true },
+      });
+      followingMap = follows.reduce(
+        (acc, follow) => {
+          acc[follow.followingId] = true;
+          return acc;
+        },
+        {} as Record<number, boolean>,
+      );
+    }
+
+    const mappedComments = comments.map((comment) => {
+      const following =
+        currentUserId && currentUserId !== comment.author.id
+          ? !!followingMap[comment.author.id]
+          : false;
+      return {
+        id: comment.id,
+        createdAt: comment.createdAt,
+        updatedAt: comment.updatedAt,
+        body: comment.body,
+        author: {
+          username: comment.author.username,
+          bio: comment.author.bio ?? undefined,
+          image: comment.author.image ?? undefined,
+          following,
+        },
+      };
+    });
 
     return { comments: mappedComments };
   }
