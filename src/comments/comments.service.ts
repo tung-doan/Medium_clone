@@ -5,16 +5,16 @@ import {
 } from '@nestjs/common';
 import { DatabaseService } from '../database/database.service';
 import { CreateCommentDto } from './dto/create-comment.dto';
-
+import { ArticlesService } from '../articles/articles.service';
 @Injectable()
 export class CommentsService {
-  constructor(private readonly databaseService: DatabaseService) {}
+  constructor(
+    private readonly databaseService: DatabaseService,
+    private readonly articlesService: ArticlesService,
+  ) {}
 
   async create(articleSlug: string, userId: number, createCommentDto: CreateCommentDto) {
-    const article = await this.databaseService.articles.findUnique({
-      where: { slug: articleSlug },
-    });
-    if (!article) throw new NotFoundException('Article not found');
+    const article = await this.articlesService.getArticleBySlugOrThrow(articleSlug);
 
     const comment = await this.databaseService.comments.create({
       data: {
@@ -60,10 +60,7 @@ export class CommentsService {
   }
 
   async findAll(articleSlug: string, currentUserId?: number) {
-    const article = await this.databaseService.articles.findUnique({
-      where: { slug: articleSlug },
-    });
-    if (!article) throw new NotFoundException('Article not found');
+    const article = await this.articlesService.getArticleBySlugOrThrow(articleSlug);
 
     const comments = await this.databaseService.comments.findMany({
       where: { articleId: article.id },
