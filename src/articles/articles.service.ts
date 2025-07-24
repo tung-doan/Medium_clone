@@ -217,6 +217,164 @@ export class ArticlesService {
     };
   }
 
+  async favorite(slug: string, userId: number): Promise<ArticleResponse> {
+    const article = await this.databaseService.articles.findUnique({
+      where: { slug },
+      include: {
+        author: {
+          select: {
+            id: true,
+            username: true,
+            bio: true,
+            image: true,
+          },
+        },
+        favorited: {
+          select: { userId: true },
+        },
+      },
+    });
+    if (!article) throw new NotFoundException('Article not found');
+
+    const alreadyFavorited = article.favorited.some(
+      (fav) => fav.userId === userId,
+    );
+    if (!alreadyFavorited) {
+      await this.databaseService.favorites.create({
+        data: { userId, articleId: article.id },
+      });
+      await this.databaseService.articles.update({
+        where: { id: article.id },
+        data: { favoritesCount: article.favoritesCount + 1 },
+      });
+    }
+
+    const updated = await this.databaseService.articles.findUnique({
+      where: { slug },
+      include: {
+        author: {
+          select: {
+            id: true,
+            username: true,
+            bio: true,
+            image: true,
+          },
+        },
+        favorited: {
+          select: { userId: true },
+        },
+      },
+    });
+
+    if (!updated) {
+      throw new NotFoundException('Article not found after favoriting');
+    }
+
+    const favorited = updated.favorited.some((fav) => fav.userId === userId);
+    let following = false;
+    if (userId !== updated.author.id) {
+      const follow = await this.databaseService.follow.findUnique({
+        where: {
+          followerId_followingId: {
+            followerId: userId,
+            followingId: updated.author.id,
+          },
+        },
+      });
+      following = !!follow;
+    }
+
+    const mappedUpdated = {
+      ...updated,
+      author: {
+        ...updated.author,
+        bio: updated.author.bio ?? undefined,
+        image: updated.author.image ?? undefined,
+      },
+    };
+
+    return this.transformArticleResponse(mappedUpdated, favorited, following);
+  }
+
+  async unfavorite(slug: string, userId: number): Promise<ArticleResponse> {
+    const article = await this.databaseService.articles.findUnique({
+      where: { slug },
+      include: {
+        author: {
+          select: {
+            id: true,
+            username: true,
+            bio: true,
+            image: true,
+          },
+        },
+        favorited: {
+          select: { userId: true },
+        },
+      },
+    });
+    if (!article) throw new NotFoundException('Article not found');
+
+    const alreadyFavorited = article.favorited.some(
+      (fav) => fav.userId === userId,
+    );
+    if (alreadyFavorited) {
+      await this.databaseService.favorites.deleteMany({
+        where: { userId, articleId: article.id },
+      });
+      await this.databaseService.articles.update({
+        where: { id: article.id },
+        data: { favoritesCount: Math.max(0, article.favoritesCount - 1) },
+      });
+    }
+
+    const updated = await this.databaseService.articles.findUnique({
+      where: { slug },
+      include: {
+        author: {
+          select: {
+            id: true,
+            username: true,
+            bio: true,
+            image: true,
+          },
+        },
+        favorited: {
+          select: { userId: true },
+        },
+      },
+    });
+
+    if (!updated) {
+      throw new NotFoundException('Article not found after unfavoriting');
+    }
+
+    const favorited = updated.favorited.some((fav) => fav.userId === userId);
+    let following = false;
+    if (userId !== updated.author.id) {
+      const follow = await this.databaseService.follow.findUnique({
+        where: {
+          followerId_followingId: {
+            followerId: userId,
+            followingId: updated.author.id,
+          },
+        },
+      });
+      following = !!follow;
+    }
+
+    const mappedUpdated = {
+      ...updated,
+      author: {
+        ...updated.author,
+        bio: updated.author.bio ?? undefined,
+        image: updated.author.image ?? undefined,
+      },
+    };
+
+    return this.transformArticleResponse(mappedUpdated, favorited, following);
+  }
+
   private transformArticleResponse(
     article: ArticleWithRelations,
     favorited: boolean,
