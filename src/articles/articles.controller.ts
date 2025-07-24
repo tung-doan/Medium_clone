@@ -99,4 +99,27 @@ export class ArticlesController {
     await this.articlesService.remove(slug, request.user.id);
     return { message: 'Article deleted successfully' };
   }
+
+  @UseGuards(JwtAuthGuard)
+  @Post(':slug/favorite')
+  async favorite(
+    @Param('slug') slug: string,
+    @Req() request: AuthenticatedRequest,
+  ) {
+    const article = await this.articlesService.favorite(slug, request.user.id);
+    return { article };
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Delete(':slug/favorite')
+  async unfavorite(
+    @Param('slug') slug: string,
+    @Req() request: AuthenticatedRequest,
+  ) {
+    const article = await this.articlesService.unfavorite(
+      slug,
+      request.user.id,
+    );
+    return { article };
+  }
 }
