@@ -1,0 +1,22 @@
+{
+  "errors": {
+    "user_not_found": "ID {{id}} のユーザーが見つかりません",
+    "profile_not_found": "ユーザープロファイルが見つかりません",
+    "username_exists": "ユーザー名は既に存在します",
+    "email_exists": "メールは既に存在します",
+    "cannot_follow_self": "自分自身をフォローすることはできません",
+    "password_not_match": "パスワードと確認用パスワードが一致しません",
+    "new_password_must_different": "新しいパスワードは現在のパスワードと異なる必要があります",
+    "already_following": "このユーザーは既にフォローしています",
+    "not_following": "このユーザーはフォローしていません"
+  },
+  "success": {
+    "update_success": "ユーザーの更新に成功しました",
+    "follow_success": "ユーザーのフォローに成功しました",
+    "unfollow_success": "ユーザーのフォロー解除に成功しました",
+    "get_user_success": "ユーザー情報の取得に成功しました"
+  },
+  "validation": {
+    "password_confirmation_required": "パスワードを更新する場合は確認用パスワードが必要です"
+  }
+}

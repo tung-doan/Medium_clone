@@ -1,0 +1,23 @@
+{
+  "error": {
+    "article_not_found": "Không tìm thấy bài viết",
+    "forbidden": "Bạn không có quyền truy cập",
+    "title_exists": "Đã có bài viết với tiêu đề này",
+    "cannot_update": "Bạn chỉ có thể cập nhật bài viết của mình",
+    "cannot_delete": "Bạn chỉ có thể xóa bài viết của mình",
+    "not_favorited": "Bạn chưa yêu thích bài viết này",
+    "already_favorited": "Bạn đã yêu thích bài viết này"
+  },
+  "success": {
+    "create_success": "Tạo bài viết thành công",
+    "delete_success": "Xóa bài viết thành công",
+    "update_success": "Cập nhật bài viết thành công",
+    "favorite_success": "Yêu thích bài viết thành công",
+    "unfavorite_success": "Bỏ yêu thích bài viết thành công"
+  },
+  "validation": {
+    "title_required": "Tiêu đề là bắt buộc",
+    "body_required": "Nội dung là bắt buộc",
+    "tag_invalid": "Thẻ không hợp lệ"
+  }
+}

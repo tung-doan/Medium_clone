@@ -1,0 +1,23 @@
+{
+  "error": {
+    "article_not_found": "Article not found",
+    "forbidden": "You do not have permission",
+    "title_exists": "An article with this title already exists",
+    "cannot_update": "You can only update your own articles",
+    "cannot_delete": "You can only delete your own articles",
+    "not_favorited": "You have not favorited this article",
+    "already_favorited": "You have already favorited this article"
+  },
+  "success": {
+    "create_success": "Article created successfully",
+    "delete_success": "Article deleted successfully",
+    "update_success": "Article updated successfully",
+    "favorite_success": "Article favorited successfully",
+    "unfavorite_success": "Article unfavorited successfully"
+  },
+  "validation": {
+    "title_required": "Title is required",
+    "body_required": "Body is required",
+    "tag_invalid": "Tag is invalid"
+  }
+}

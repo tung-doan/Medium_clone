@@ -1,0 +1,14 @@
+{
+  "errors": {
+    "comment_not_found": "コメントが見つかりません",
+    "forbidden": "権限がありません",
+    "cannot_delete": "自分のコメントのみ削除できます"
+  },
+  "success": {
+    "create_success": "コメントの作成に成功しました",
+    "delete_success": "コメントの削除に成功しました"
+  },
+  "validation": {
+    "body_required": "コメント本文は必須です"
+  }
+}

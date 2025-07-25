@@ -11,10 +11,13 @@ import { DatabaseService } from '../database/database.service'; // Adjust the pa
 import * as bcrypt from 'bcrypt';
 import { Users } from './users.model';
 import { UserProfile, FollowResponse } from './entities/user.entity';
-
+import { I18nService } from 'nestjs-i18n';
 @Injectable()
 export class UsersService {
-  constructor(private readonly databaseService: DatabaseService) {}
+  constructor(
+    private readonly databaseService: DatabaseService,
+    private readonly i18n: I18nService,
+  ) {}
 
   async createUser(data: RegisterDto): Promise<Users> {
     await this.checkDuplicateUserOnCreate(data);
@@ -28,26 +31,30 @@ export class UsersService {
       where: { id },
     });
     if (!user) {
-      throw new NotFoundException(`User with ID ${id} not found`);
+      throw new NotFoundException(
+        this.i18n.translate('users.errors.user_not_found', { args: { id } }),
+      );
     }
 
     if (data.password) {
       if (!data.confirmPassword) {
         throw new BadRequestException(
-          'Password confirmation is required when updating password',
+          this.i18n.translate(
+            'users.validation.password_confirmation_required',
+          ),
         );
       }
 
       if (data.password !== data.confirmPassword) {
         throw new BadRequestException(
-          'Password and confirmation password do not match',
+          this.i18n.translate('users.errors.password_not_match'),
         );
       }
 
       const isSamePassword = await bcrypt.compare(data.password, user.password);
       if (isSamePassword) {
         throw new BadRequestException(
-          'New password must be different from current password',
+          this.i18n.translate('users.errors.new_password_must_different'),
         );
       }
     }
@@ -79,11 +86,15 @@ export class UsersService {
     ]);
 
     if (existingUser) {
-      throw new ConflictException('Username already exists');
+      throw new ConflictException(
+        this.i18n.translate('users.errors.username_exists'),
+      );
     }
 
     if (existingEmail) {
-      throw new ConflictException('Email already exists');
+      throw new ConflictException(
+        this.i18n.translate('users.errors.email_exists'),
+      );
     }
   }
 
@@ -114,11 +125,15 @@ export class UsersService {
     const [existingUser, existingEmail] = await Promise.all(checks);
 
     if (existingUser && existingUser.id !== userIdToExclude) {
-      throw new ConflictException('Username already exists');
+      throw new ConflictException(
+        this.i18n.translate('users.errors.username_exists'),
+      );
     }
 
     if (existingEmail && existingEmail.id !== userIdToExclude) {
-      throw new ConflictException('Email already exists');
+      throw new ConflictException(
+        this.i18n.translate('users.errors.email_exists'),
+      );
     }
   }
 
@@ -138,7 +153,7 @@ export class UsersService {
     });
 
     if (!user) {
-      throw new NotFoundException('User not found');
+      throw new NotFoundException(this.i18n.translate('users.errors.user_not_found'));
     }
 
     let isFollowing = false;
@@ -173,11 +188,11 @@ export class UsersService {
     });
 
     if (!targetUser) {
-      throw new NotFoundException('User not found');
+      throw new NotFoundException(this.i18n.translate('users.errors.user_not_found'));
     }
 
     if (currentUserId === targetUser.id) {
-      throw new ForbiddenException('You cannot follow yourself');
+      throw new ForbiddenException(this.i18n.translate('users.errors.cannot_follow_self'));
     }
 
     const existingFollow = await this.databaseService.follow.findUnique({
@@ -190,7 +205,7 @@ export class UsersService {
     });
 
     if (existingFollow) {
-      throw new ConflictException('You are already following this user');
+      throw new ConflictException(this.i18n.translate('users.errors.already_following'));
     }
     await this.databaseService.follow.create({
       data: {
@@ -218,7 +233,7 @@ export class UsersService {
     });
 
     if (!targetUser) {
-      throw new NotFoundException('User not found');
+      throw new NotFoundException(this.i18n.translate('users.errors.user_not_found'));
     }
 
     const existingFollow = await this.databaseService.follow.findUnique({
@@ -231,7 +246,7 @@ export class UsersService {
     });
 
     if (!existingFollow) {
-      throw new ConflictException('You are not following this user');
+      throw new ConflictException(this.i18n.translate('users.errors.not_following'));
     }
     await this.databaseService.follow.delete({
       where: {

@@ -1,0 +1,23 @@
+{
+  "error": {
+    "article_not_found": "記事が見つかりません",
+    "forbidden": "権限がありません",
+    "title_exists": "このタイトルの記事は既に存在します",
+    "cannot_update": "自分の記事のみ更新できます",
+    "cannot_delete": "自分の記事のみ削除できます",
+    "not_favorited": "この記事をお気に入りにしていません",
+    "already_favorited": "この記事は既にお気に入りです"
+  },
+  "success": {
+    "create_success": "記事の作成に成功しました",
+    "delete_success": "記事の削除に成功しました",
+    "update_success": "記事の更新に成功しました",
+    "favorite_success": "記事のお気に入り登録に成功しました",
+    "unfavorite_success": "記事のお気に入り解除に成功しました"
+  },
+  "validation": {
+    "title_required": "タイトルは必須です",
+    "body_required": "本文は必須です",
+    "tag_invalid": "タグが無効です"
+  }
+}

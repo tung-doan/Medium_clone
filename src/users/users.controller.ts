@@ -14,10 +14,14 @@ import { JwtAuthGuard } from 'src/auth/auth.guard';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { Users } from '@prisma/client';
 import { AuthenticatedRequest } from 'src/users/entities/user.entity';
+import { I18nService } from 'nestjs-i18n';
 
 @Controller('api')
 export class UsersController {
-  constructor(private readonly usersService: UsersService) {}
+  constructor(
+    private readonly usersService: UsersService,
+    private readonly i18n: I18nService,
+  ) {}
 
   @UseGuards(JwtAuthGuard)
   @Get('/user')
@@ -25,7 +29,7 @@ export class UsersController {
     const user = request.user;
     return {
       status: 'success',
-      message: 'User retrieved successfully',
+      message: this.i18n.translate('users.success.get_user_success'),
       result: user,
     };
   }
@@ -39,7 +43,7 @@ export class UsersController {
     );
     return {
       status: 'success',
-      message: 'User updated successfully',
+      message: this.i18n.translate('users.success.update_success'),
       result: updatedUser,
     };
   }
@@ -63,7 +67,12 @@ export class UsersController {
     @Param('username') username: string,
     @Req() request: AuthenticatedRequest,
   ) {
-    return await this.usersService.followUser(request.user.id, username);
+    const result = await this.usersService.followUser(request.user.id, username);
+    return {
+      status: 'success',
+      message: this.i18n.translate('users.success.follow_success'),
+      result,
+    };
   }
 
   @UseGuards(JwtAuthGuard)
@@ -72,6 +81,11 @@ export class UsersController {
     @Param('username') username: string,
     @Req() request: AuthenticatedRequest,
   ) {
-    return await this.usersService.unfollowUser(request.user.id, username);
+    const result = await this.usersService.unfollowUser(request.user.id, username);
+    return {
+      status: 'success',
+      message: this.i18n.translate('users.success.unfollow_success'),
+      result,
+    };
   }
 }
