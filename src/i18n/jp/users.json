@@ -1,6 +1,6 @@
 {
   "errors": {
-    "user_not_found": "ユーザーが見つかりません",
+    "user_not_found": "ID {{id}} のユーザーが見つかりません",
     "profile_not_found": "ユーザープロファイルが見つかりません",
     "username_exists": "ユーザー名は既に存在します",
     "email_exists": "メールは既に存在します",

@@ -1,6 +1,6 @@
 {
   "errors": {
-    "user_not_found": "Không tìm thấy người dùng",
+    "user_not_found": "Không tìm thấy người dùng với ID {{id}}",
     "profile_not_found": "Không tìm thấy hồ sơ người dùng",
     "username_exists": "Tên người dùng đã tồn tại",
     "email_exists": "Email đã tồn tại",

@@ -6,15 +6,23 @@ import {
 import { DatabaseService } from '../database/database.service';
 import { CreateCommentDto } from './dto/create-comment.dto';
 import { ArticlesService } from '../articles/articles.service';
+import { I18nService } from 'nestjs-i18n';
+
 @Injectable()
 export class CommentsService {
   constructor(
     private readonly databaseService: DatabaseService,
     private readonly articlesService: ArticlesService,
+    private readonly i18n: I18nService,
   ) {}
 
-  async create(articleSlug: string, userId: number, createCommentDto: CreateCommentDto) {
-    const article = await this.articlesService.getArticleBySlugOrThrow(articleSlug);
+  async create(
+    articleSlug: string,
+    userId: number,
+    createCommentDto: CreateCommentDto,
+  ) {
+    const article =
+      await this.articlesService.getArticleBySlugOrThrow(articleSlug);
 
     const comment = await this.databaseService.comments.create({
       data: {
@@ -60,7 +68,8 @@ export class CommentsService {
   }
 
   async findAll(articleSlug: string, currentUserId?: number) {
-    const article = await this.articlesService.getArticleBySlugOrThrow(articleSlug);
+    const article =
+      await this.articlesService.getArticleBySlugOrThrow(articleSlug);
 
     const comments = await this.databaseService.comments.findMany({
       where: { articleId: article.id },
@@ -118,11 +127,18 @@ export class CommentsService {
     const comment = await this.databaseService.comments.findUnique({
       where: { id: commentId },
     });
-    if (!comment) throw new NotFoundException('Comment not found');
+    if (!comment)
+      throw new NotFoundException(
+        this.i18n.translate('comments.errors.comment_not_found'),
+      );
     if (comment.authorId !== userId)
-      throw new ForbiddenException('Not allowed');
+      throw new ForbiddenException(
+        this.i18n.translate('comments.errors.forbidden'),
+      );
 
     await this.databaseService.comments.delete({ where: { id: commentId } });
-    return { message: 'Comment deleted successfully' };
+    return {
+      message: this.i18n.translate('comments.success.delete_success'),
+    };
   }
 }
