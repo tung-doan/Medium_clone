@@ -1,6 +1,6 @@
 {
   "errors": {
-    "user_not_found": "User not found",
+    "user_not_found": "User with ID {{id}} not found",
     "profile_not_found": "User profile not found",
     "username_exists": "Username already exists",
     "email_exists": "Email already exists",
