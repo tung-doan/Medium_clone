@@ -1,0 +1,22 @@
+{
+  "errors": {
+    "user_not_found": "User not found",
+    "profile_not_found": "User profile not found",
+    "username_exists": "Username already exists",
+    "email_exists": "Email already exists",
+    "cannot_follow_self": "You cannot follow yourself",
+    "password_not_match": "Password and confirmation password do not match",
+    "new_password_must_different": "New password must be different from current password",
+    "already_following": "You are already following this user",
+    "not_following": "You are not following this user"
+  },
+  "success": {
+    "update_success": "User updated successfully",
+    "follow_success": "Followed user successfully",
+    "unfollow_success": "Unfollowed user successfully",
+    "get_user_success": "User retrieved successfully"
+  },
+  "validation":{
+    "password_confirmation_required": "Password confirmation is required when updating password"
+  }
+}

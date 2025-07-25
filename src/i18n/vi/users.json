@@ -1,0 +1,22 @@
+{
+  "errors": {
+    "user_not_found": "Không tìm thấy người dùng",
+    "profile_not_found": "Không tìm thấy hồ sơ người dùng",
+    "username_exists": "Tên người dùng đã tồn tại",
+    "email_exists": "Email đã tồn tại",
+    "cannot_follow_self": "Bạn không thể tự theo dõi chính mình",
+    "password_not_match": "Mật khẩu và xác nhận mật khẩu không khớp",
+    "new_password_must_different": "Mật khẩu mới phải khác mật khẩu hiện tại",
+    "already_following": "Bạn đã theo dõi người dùng này",
+    "not_following": "Bạn chưa theo dõi người dùng này"
+  },
+  "success": {
+    "update_success": "Cập nhật người dùng thành công",
+    "follow_success": "Theo dõi người dùng thành công",
+    "unfollow_success": "Bỏ theo dõi người dùng thành công",
+    "get_user_success": "Lấy thông tin người dùng thành công"
+  },
+  "validation": {
+    "password_confirmation_required": "Cần xác nhận mật khẩu khi cập nhật mật khẩu"
+  }
+}

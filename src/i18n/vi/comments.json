@@ -1,0 +1,14 @@
+{
+  "errors": {
+    "comment_not_found": "Không tìm thấy bình luận",
+    "forbidden": "Bạn không có quyền thực hiện thao tác này",
+    "cannot_delete": "Bạn chỉ có thể xóa bình luận của mình"
+  },
+  "success": {
+    "create_success": "Tạo bình luận thành công",
+    "delete_success": "Xóa bình luận thành công"
+  },
+  "validation": {
+    "body_required": "Nội dung bình luận là bắt buộc"
+  }
+}
