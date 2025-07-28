@@ -217,6 +217,146 @@ export class ArticlesService {
     };
   }
 
+  async favorite(slug: string, userId: number): Promise<ArticleResponse> {
+    const article = await this.getArticleWithRelationsBySlug(slug);
+    if (!article) throw new NotFoundException('Article not found');
+
+    const alreadyFavorited = article.favorited.some(
+      (fav) => fav.userId === userId,
+    );
+    if (!alreadyFavorited) {
+      await this.databaseService.$transaction(async (prisma) => {
+        await prisma.favorites.create({
+          data: { userId, articleId: article.id },
+        });
+        await prisma.articles.update({
+          where: { id: article.id },
+          data: { favoritesCount: article.favoritesCount + 1 },
+        });
+      });
+    }
+
+    if (alreadyFavorited) {
+      throw new ConflictException('You have already favorited this article');
+    }
+
+    const updated = await this.databaseService.articles.findUnique({
+      where: { slug },
+      include: {
+        author: {
+          select: {
+            id: true,
+            username: true,
+            bio: true,
+            image: true,
+          },
+        },
+        favorited: {
+          select: { userId: true },
+        },
+      },
+    });
+
+    if (!updated) {
+      throw new NotFoundException('Article not found after favoriting');
+    }
+
+    const favorited = updated.favorited.some((fav) => fav.userId === userId);
+    let following = false;
+    if (userId !== updated.author.id) {
+      const follow = await this.databaseService.follow.findUnique({
+        where: {
+          followerId_followingId: {
+            followerId: userId,
+            followingId: updated.author.id,
+          },
+        },
+      });
+      following = !!follow;
+    }
+
+    const mappedUpdated = {
+      ...updated,
+      author: {
+        ...updated.author,
+        bio: updated.author.bio ?? undefined,
+        image: updated.author.image ?? undefined,
+      },
+    };
+
+    return this.transformArticleResponse(mappedUpdated, favorited, following);
+  }
+
+  async unfavorite(slug: string, userId: number): Promise<ArticleResponse> {
+    const article = await this.getArticleWithRelationsBySlug(slug);
+    if (!article) throw new NotFoundException('Article not found');
+
+    const alreadyFavorited = article.favorited.some(
+      (fav) => fav.userId === userId,
+    );
+    if (alreadyFavorited) {
+      await this.databaseService.$transaction(async (prisma) => {
+        await prisma.favorites.deleteMany({
+          where: { userId, articleId: article.id },
+        });
+        await prisma.articles.update({
+          where: { id: article.id },
+          data: { favoritesCount: Math.max(0, article.favoritesCount - 1) },
+        });
+      });
+    }
+
+    if (!alreadyFavorited) {
+      throw new ConflictException('You have not favorited this article');
+    }
+
+    const updated = await this.databaseService.articles.findUnique({
+      where: { slug },
+      include: {
+        author: {
+          select: {
+            id: true,
+            username: true,
+            bio: true,
+            image: true,
+          },
+        },
+        favorited: {
+          select: { userId: true },
+        },
+      },
+    });
+
+    if (!updated) {
+      throw new NotFoundException('Article not found after unfavoriting');
+    }
+
+    const favorited = updated.favorited.some((fav) => fav.userId === userId);
+    let following = false;
+    if (userId !== updated.author.id) {
+      const follow = await this.databaseService.follow.findUnique({
+        where: {
+          followerId_followingId: {
+            followerId: userId,
+            followingId: updated.author.id,
+          },
+        },
+      });
+      following = !!follow;
+    }
+
+    const mappedUpdated = {
+      ...updated,
+      author: {
+        ...updated.author,
+        bio: updated.author.bio ?? undefined,
+        image: updated.author.image ?? undefined,
+      },
+    };
+
+    return this.transformArticleResponse(mappedUpdated, favorited, following);
+  }
+
   private transformArticleResponse(
     article: ArticleWithRelations,
     favorited: boolean,
@@ -322,28 +462,8 @@ export class ArticlesService {
     slug: string,
     currentUserId?: number,
   ): Promise<ArticleResponse> {
-    const article = await this.databaseService.articles.findUnique({
-      where: { slug },
-      include: {
-        author: {
-          select: {
-            id: true,
-            username: true,
-            bio: true,
-            image: true,
-          },
-        },
-        favorited: {
-          select: {
-            userId: true,
-          },
-        },
-      },
-    });
-
-    if (!article) {
-      throw new NotFoundException('Article not found');
-    }
+    const article = await this.getArticleWithRelationsBySlug(slug);
+    if (!article) throw new NotFoundException('Article not found');
     // favorited: boolean - true nếu user hiện tại đã favorite bài viết, false nếu chưa
     const favorited = currentUserId
       ? article.favorited.some((fav) => fav.userId === currentUserId)
@@ -379,28 +499,8 @@ export class ArticlesService {
     updateArticleDto: UpdateArticleDto,
     currentUserId: number,
   ): Promise<ArticleResponse> {
-    const existingArticle = await this.databaseService.articles.findUnique({
-      where: { slug },
-      include: {
-        author: {
-          select: {
-            id: true,
-            username: true,
-            bio: true,
-            image: true,
-          },
-        },
-        favorited: {
-          select: {
-            userId: true,
-          },
-        },
-      },
-    });
-
-    if (!existingArticle) {
-      throw new NotFoundException('Article not found');
-    }
+    const existingArticle = await this.getArticleWithRelationsBySlug(slug);
+    if (!existingArticle) throw new NotFoundException('Article not found');
 
     if (existingArticle.authorId !== currentUserId) {
       throw new ForbiddenException('You can only update your own articles');
@@ -556,5 +656,24 @@ export class ArticlesService {
     });
     if (!article) throw new NotFoundException('Article not found');
     return article;
+  }
+
+  private async getArticleWithRelationsBySlug(slug: string) {
+    return await this.databaseService.articles.findUnique({
+      where: { slug },
+      include: {
+        author: {
+          select: {
+            id: true,
+            username: true,
+            bio: true,
+            image: true,
+          },
+        },
+        favorited: {
+          select: { userId: true },
+        },
+      },
+    });
   }
 }
