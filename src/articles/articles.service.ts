@@ -169,6 +169,9 @@ export class ArticlesService {
               userId: true,
             },
           },
+          comments: {
+            select: { id: true },
+          },
         },
         orderBy: {
           createdAt: 'desc',
@@ -263,6 +266,9 @@ export class ArticlesService {
         favorited: {
           select: { userId: true },
         },
+        comments: {
+          select: { id: true },
+        },
       },
     });
 
@@ -338,6 +344,9 @@ export class ArticlesService {
         favorited: {
           select: { userId: true },
         },
+        comments: {
+          select: { id: true },
+        },
       },
     });
 
@@ -392,6 +401,7 @@ export class ArticlesService {
       slug: article.slug,
       authorId: article.authorId,
       favoritesCount: article.favoritesCount,
+      commentsCount: article.comments?.length || 0,
       createdAt: article.createdAt,
       updatedAt: article.updatedAt,
       author: {
@@ -435,6 +445,9 @@ export class ArticlesService {
             select: {
               userId: true,
             },
+          },
+          comments: {
+            select: { id: true },
           },
         },
         orderBy: {
@@ -603,6 +616,11 @@ export class ArticlesService {
                 userId: true,
               },
             },
+            comments: {
+              select: {
+                id: true,
+              },
+            },
           },
         });
 
@@ -696,6 +714,9 @@ export class ArticlesService {
         },
         favorited: {
           select: { userId: true },
+        },
+        comments: {
+          select: { id: true },
         },
       },
     });

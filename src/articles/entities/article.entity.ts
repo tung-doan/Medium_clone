@@ -1,4 +1,4 @@
-import { Users } from "@prisma/client";
+import { Users } from '@prisma/client';
 
 export type ArticleResponse = {
   id: number;
@@ -8,6 +8,7 @@ export type ArticleResponse = {
   slug: string;
   authorId: number;
   favoritesCount: number;
+  commentsCount: number;
   createdAt: Date;
   updatedAt: Date;
   author: {
@@ -18,7 +19,7 @@ export type ArticleResponse = {
     following: boolean;
   };
   favorited: boolean;
-  tagList: string[]; 
+  tagList: string[];
 };
 
 export interface ArticleListResponse {
@@ -56,8 +57,12 @@ export interface ArticleWithRelations {
   updatedAt: Date;
   tagList: string;
   author: ArticleAuthor;
-  favorited: Array<{    // Kiểm tra xem userid hiện tại có trong mảng favorited hay không từ đấy xác định được favourite trong ArticleResponse
+  favorited: Array<{
+    // Kiểm tra xem userid hiện tại có trong mảng favorited hay không từ đấy xác định được favourite trong ArticleResponse
     userId: number;
+  }>;
+  comments: Array<{
+    id: number;
   }>;
 }
 
