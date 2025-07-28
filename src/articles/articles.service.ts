@@ -225,13 +225,19 @@ export class ArticlesService {
       (fav) => fav.userId === userId,
     );
     if (!alreadyFavorited) {
-      await this.databaseService.favorites.create({
-        data: { userId, articleId: article.id },
+      await this.databaseService.$transaction(async (prisma) => {
+        await prisma.favorites.create({
+          data: { userId, articleId: article.id },
+        });
+        await prisma.articles.update({
+          where: { id: article.id },
+          data: { favoritesCount: article.favoritesCount + 1 },
+        });
       });
-      await this.databaseService.articles.update({
-        where: { id: article.id },
-        data: { favoritesCount: article.favoritesCount + 1 },
-      });
+    }
+
+    if (alreadyFavorited) {
+      throw new ConflictException('You have already favorited this article');
     }
 
     const updated = await this.databaseService.articles.findUnique({
@@ -289,13 +295,19 @@ export class ArticlesService {
       (fav) => fav.userId === userId,
     );
     if (alreadyFavorited) {
-      await this.databaseService.favorites.deleteMany({
-        where: { userId, articleId: article.id },
+      await this.databaseService.$transaction(async (prisma) => {
+        await prisma.favorites.deleteMany({
+          where: { userId, articleId: article.id },
+        });
+        await prisma.articles.update({
+          where: { id: article.id },
+          data: { favoritesCount: Math.max(0, article.favoritesCount - 1) },
+        });
       });
-      await this.databaseService.articles.update({
-        where: { id: article.id },
-        data: { favoritesCount: Math.max(0, article.favoritesCount - 1) },
-      });
+    }
+
+    if (!alreadyFavorited) {
+      throw new ConflictException('You have not favorited this article');
     }
 
     const updated = await this.databaseService.articles.findUnique({
