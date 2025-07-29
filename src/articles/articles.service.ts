@@ -27,6 +27,7 @@ export class ArticlesService {
   async create(createArticleDto: CreateArticleDto, authorId: number) {
     const { title, tagList } = createArticleDto;
     const slug = slugify(title, { lower: true, strict: true });
+    const isDraft = createArticleDto.isDraft !== false;
     const existingArticle = await this.databaseService.articles.findUnique({
       where: { slug },
     });
@@ -43,6 +44,7 @@ export class ArticlesService {
             description: createArticleDto.description,
             body: createArticleDto.body,
             tagList: JSON.stringify(tagList || []),
+            isDraft,
             slug,
             authorId,
           },
@@ -151,6 +153,8 @@ export class ArticlesService {
         },
       };
     }
+
+    whereConditions.isDraft = false;
 
     const [articles, totalCount] = await Promise.all([
       this.databaseService.articles.findMany({
@@ -404,6 +408,7 @@ export class ArticlesService {
       commentsCount: article.comments?.length || 0,
       createdAt: article.createdAt,
       updatedAt: article.updatedAt,
+      isDraft: article.isDraft,
       author: {
         id: article.author.id,
         username: article.author.username,
@@ -493,7 +498,7 @@ export class ArticlesService {
     currentUserId?: number,
   ): Promise<ArticleResponse> {
     const article = await this.getArticleWithRelationsBySlug(slug);
-    if (!article)
+    if (!article || (article.isDraft && article.authorId !== currentUserId))
       throw new NotFoundException(
         this.i18n.translate('articles.error.article_not_found'),
       );
@@ -569,6 +574,7 @@ export class ArticlesService {
           body?: string;
           tagList?: string;
           slug?: string;
+          isDraft?: boolean;
         } = {};
 
         if (updateArticleDto.title) {
@@ -596,6 +602,10 @@ export class ArticlesService {
               existingArticle.id,
               updateArticleDto.tagList,
             );
+          }
+
+          if (updateArticleDto.isDraft !== undefined) {
+            updateData.isDraft = updateArticleDto.isDraft;
           }
         }
 
@@ -719,6 +729,17 @@ export class ArticlesService {
           select: { id: true },
         },
       },
+    });
+  }
+
+  async publishArticles(articleIds: number[], userId: number) {
+    await this.databaseService.articles.updateMany({
+      where: {
+        id: { in: articleIds },
+        authorId: userId,
+        isDraft: true,
+      },
+      data: { isDraft: false },
     });
   }
 }
