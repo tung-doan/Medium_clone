@@ -1,0 +1,14 @@
+{
+  "errors": {
+    "comment_not_found": "Comment not found",
+    "forbidden": "You do not have permission",
+    "cannot_delete": "You can only delete your own comments"
+  },
+  "success": {
+    "create_success": "Comment created successfully",
+    "delete_success": "Comment deleted successfully"
+  },
+  "validation": {
+    "body_required": "Comment body is required"
+  }
+}

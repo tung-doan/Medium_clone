@@ -15,10 +15,14 @@ import {
   ArticleListResponse,
   ArticleWithRelations,
 } from './entities/article.entity';
+import { I18nService } from 'nestjs-i18n';
 
 @Injectable()
 export class ArticlesService {
-  constructor(private readonly databaseService: DatabaseService) {}
+  constructor(
+    private readonly databaseService: DatabaseService,
+    private readonly i18n: I18nService,
+  ) {}
 
   async create(createArticleDto: CreateArticleDto, authorId: number) {
     const { title, tagList } = createArticleDto;
@@ -27,11 +31,12 @@ export class ArticlesService {
       where: { slug },
     });
     if (existingArticle) {
-      throw new ForbiddenException('Article with this title already exists');
+      throw new ForbiddenException(
+        this.i18n.translate('articles.error.title_exists'),
+      );
     }
     const article = await this.databaseService.$transaction(
       async (prisma: Prisma.TransactionClient) => {
-        // 1. Create article với tagList array
         const createdArticle = await prisma.articles.create({
           data: {
             title: createArticleDto.title,
@@ -114,6 +119,7 @@ export class ArticlesService {
       }
     }
   }
+
   async findAll(
     limit = 20,
     offset = 0,
@@ -219,7 +225,10 @@ export class ArticlesService {
 
   async favorite(slug: string, userId: number): Promise<ArticleResponse> {
     const article = await this.getArticleWithRelationsBySlug(slug);
-    if (!article) throw new NotFoundException('Article not found');
+    if (!article)
+      throw new NotFoundException(
+        this.i18n.translate('articles.error.article_not_found'),
+      );
 
     const alreadyFavorited = article.favorited.some(
       (fav) => fav.userId === userId,
@@ -236,29 +245,12 @@ export class ArticlesService {
       });
     }
 
-    if (alreadyFavorited) {
-      throw new ConflictException('You have already favorited this article');
-    }
-
-    const updated = await this.databaseService.articles.findUnique({
-      where: { slug },
-      include: {
-        author: {
-          select: {
-            id: true,
-            username: true,
-            bio: true,
-            image: true,
-          },
-        },
-        favorited: {
-          select: { userId: true },
-        },
-      },
-    });
+    const updated = await this.getArticleWithRelationsBySlug(slug);
 
     if (!updated) {
-      throw new NotFoundException('Article not found after favoriting');
+      throw new NotFoundException(
+        this.i18n.translate('articles.error.article_not_found'),
+      );
     }
 
     const favorited = updated.favorited.some((fav) => fav.userId === userId);
@@ -289,7 +281,10 @@ export class ArticlesService {
 
   async unfavorite(slug: string, userId: number): Promise<ArticleResponse> {
     const article = await this.getArticleWithRelationsBySlug(slug);
-    if (!article) throw new NotFoundException('Article not found');
+    if (!article)
+      throw new NotFoundException(
+        this.i18n.translate('articles.error.article_not_found'),
+      );
 
     const alreadyFavorited = article.favorited.some(
       (fav) => fav.userId === userId,
@@ -306,29 +301,12 @@ export class ArticlesService {
       });
     }
 
-    if (!alreadyFavorited) {
-      throw new ConflictException('You have not favorited this article');
-    }
-
-    const updated = await this.databaseService.articles.findUnique({
-      where: { slug },
-      include: {
-        author: {
-          select: {
-            id: true,
-            username: true,
-            bio: true,
-            image: true,
-          },
-        },
-        favorited: {
-          select: { userId: true },
-        },
-      },
-    });
+    const updated = await this.getArticleWithRelationsBySlug(slug);
 
     if (!updated) {
-      throw new NotFoundException('Article not found after unfavoriting');
+      throw new NotFoundException(
+        this.i18n.translate('articles.error.article_not_found'),
+      );
     }
 
     const favorited = updated.favorited.some((fav) => fav.userId === userId);
@@ -379,7 +357,7 @@ export class ArticlesService {
       createdAt: article.createdAt,
       updatedAt: article.updatedAt,
       author: {
-        id: article.id,
+        id: article.author.id,
         username: article.author.username,
         bio: article.author.bio || undefined,
         image: article.author.image || undefined,
@@ -458,13 +436,16 @@ export class ArticlesService {
       articlesCount: totalCount,
     };
   }
+
   async findOne(
     slug: string,
     currentUserId?: number,
   ): Promise<ArticleResponse> {
     const article = await this.getArticleWithRelationsBySlug(slug);
-    if (!article) throw new NotFoundException('Article not found');
-    // favorited: boolean - true nếu user hiện tại đã favorite bài viết, false nếu chưa
+    if (!article)
+      throw new NotFoundException(
+        this.i18n.translate('articles.error.article_not_found'),
+      );
     const favorited = currentUserId
       ? article.favorited.some((fav) => fav.userId === currentUserId)
       : false;
@@ -500,10 +481,15 @@ export class ArticlesService {
     currentUserId: number,
   ): Promise<ArticleResponse> {
     const existingArticle = await this.getArticleWithRelationsBySlug(slug);
-    if (!existingArticle) throw new NotFoundException('Article not found');
+    if (!existingArticle)
+      throw new NotFoundException(
+        this.i18n.translate('articles.error.article_not_found'),
+      );
 
     if (existingArticle.authorId !== currentUserId) {
-      throw new ForbiddenException('You can only update your own articles');
+      throw new ForbiddenException(
+        this.i18n.translate('articles.error.cannot_update'),
+      );
     }
 
     let newSlug = existingArticle.slug;
@@ -519,7 +505,7 @@ export class ArticlesService {
 
       if (slugConflict && slugConflict.id !== existingArticle.id) {
         throw new ConflictException(
-          'An article with this title already exists',
+          this.i18n.translate('articles.error.title_exists'),
         );
       }
     }
@@ -548,18 +534,11 @@ export class ArticlesService {
         }
 
         if (updateArticleDto.tagList !== undefined) {
-          const tagListString =
-            updateArticleDto.tagList && updateArticleDto.tagList.length > 0
-              ? updateArticleDto.tagList.join(',')
-              : '';
-          updateData.tagList = tagListString;
-
-          // Remove existing article-tag relationships
+          updateData.tagList = JSON.stringify(updateArticleDto.tagList || []);
           await prisma.articleTags.deleteMany({
             where: { articleId: existingArticle.id },
           });
 
-          // Create new article-tag relationships
           if (updateArticleDto.tagList && updateArticleDto.tagList.length > 0) {
             await this.handleArticleTags(
               prisma,
@@ -625,11 +604,15 @@ export class ArticlesService {
     });
 
     if (!article) {
-      throw new NotFoundException('Article not found');
+      throw new NotFoundException(
+        this.i18n.translate('articles.error.article_not_found'),
+      );
     }
 
     if (article.authorId !== currentUserId) {
-      throw new ForbiddenException('You can only delete your own articles');
+      throw new ForbiddenException(
+        this.i18n.translate('articles.error.cannot_delete'),
+      );
     }
 
     await this.databaseService.$transaction(
@@ -654,7 +637,10 @@ export class ArticlesService {
     const article = await this.databaseService.articles.findUnique({
       where: { slug },
     });
-    if (!article) throw new NotFoundException('Article not found');
+    if (!article)
+      throw new NotFoundException(
+        this.i18n.translate('articles.error.article_not_found'),
+      );
     return article;
   }
 

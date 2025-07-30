@@ -17,10 +17,14 @@ import { CreateArticleDto } from './dto/create-article.dto';
 import { UpdateArticleDto } from './dto/update-article.dto';
 import { JwtAuthGuard } from 'src/auth/auth.guard';
 import { AuthenticatedRequest } from './entities/article.entity';
+import { I18nService } from 'nestjs-i18n';
 
 @Controller('/api/articles')
 export class ArticlesController {
-  constructor(private readonly articlesService: ArticlesService) {}
+  constructor(
+    private readonly articlesService: ArticlesService,
+    private readonly i18n: I18nService,
+  ) {}
 
   @UseGuards(JwtAuthGuard)
   @Post()
@@ -97,7 +101,7 @@ export class ArticlesController {
     @Req() request: AuthenticatedRequest,
   ) {
     await this.articlesService.remove(slug, request.user.id);
-    return { message: 'Article deleted successfully' };
+    return { message: this.i18n.translate('articles.success.delete_success') };
   }
 
   @UseGuards(JwtAuthGuard)
