@@ -101,7 +101,7 @@ export class ArticlesController {
     @Req() request: AuthenticatedRequest,
   ) {
     await this.articlesService.remove(slug, request.user.id);
-    return { message: this.i18n.translate('Article deleted successfully') };
+    return { message: this.i18n.translate('articles.success.delete_success') };
   }
 
   @UseGuards(JwtAuthGuard)

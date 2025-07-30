@@ -16,7 +16,7 @@
     "unfollow_success": "Unfollowed user successfully",
     "get_user_success": "User retrieved successfully"
   },
-  "validation":{
+  "validation": {
     "password_confirmation_required": "Password confirmation is required when updating password"
   }
 }

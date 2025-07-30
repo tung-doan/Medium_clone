@@ -5,7 +5,7 @@ import { UsersService } from 'src/users/users.service';
 import { LoginDto } from 'src/auth/dto/login-user.dto';
 import * as bcrypt from 'bcrypt';
 import { RegisterDto } from 'src/auth/dto/register-user.dto';
-import { I18nService } from 'nestjs-i18n'; // Thêm dòng này
+import { I18nService } from 'nestjs-i18n'; 
 
 import {
   LoginResponse,
@@ -18,7 +18,7 @@ export class AuthService {
     private readonly databaseService: DatabaseService,
     private jwtService: JwtService,
     private readonly usersService: UsersService,
-    private readonly i18n: I18nService, // Thêm dòng này
+    private readonly i18n: I18nService, 
   ) {}
 
   async login(loginDto: LoginDto): Promise<LoginResponse> {
