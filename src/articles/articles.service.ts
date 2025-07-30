@@ -169,6 +169,9 @@ export class ArticlesService {
               userId: true,
             },
           },
+          comments: {
+            select: { id: true },
+          },
         },
         orderBy: {
           createdAt: 'desc',
@@ -245,7 +248,29 @@ export class ArticlesService {
       });
     }
 
-    const updated = await this.getArticleWithRelationsBySlug(slug);
+    if (alreadyFavorited) {
+      throw new ConflictException('You have already favorited this article');
+    }
+
+    const updated = await this.databaseService.articles.findUnique({
+      where: { slug },
+      include: {
+        author: {
+          select: {
+            id: true,
+            username: true,
+            bio: true,
+            image: true,
+          },
+        },
+        favorited: {
+          select: { userId: true },
+        },
+        comments: {
+          select: { id: true },
+        },
+      },
+    });
 
     if (!updated) {
       throw new NotFoundException(
@@ -301,7 +326,29 @@ export class ArticlesService {
       });
     }
 
-    const updated = await this.getArticleWithRelationsBySlug(slug);
+    if (!alreadyFavorited) {
+      throw new ConflictException('You have not favorited this article');
+    }
+
+    const updated = await this.databaseService.articles.findUnique({
+      where: { slug },
+      include: {
+        author: {
+          select: {
+            id: true,
+            username: true,
+            bio: true,
+            image: true,
+          },
+        },
+        favorited: {
+          select: { userId: true },
+        },
+        comments: {
+          select: { id: true },
+        },
+      },
+    });
 
     if (!updated) {
       throw new NotFoundException(
@@ -354,6 +401,7 @@ export class ArticlesService {
       slug: article.slug,
       authorId: article.authorId,
       favoritesCount: article.favoritesCount,
+      commentsCount: article.comments?.length || 0,
       createdAt: article.createdAt,
       updatedAt: article.updatedAt,
       author: {
@@ -397,6 +445,9 @@ export class ArticlesService {
             select: {
               userId: true,
             },
+          },
+          comments: {
+            select: { id: true },
           },
         },
         orderBy: {
@@ -565,6 +616,11 @@ export class ArticlesService {
                 userId: true,
               },
             },
+            comments: {
+              select: {
+                id: true,
+              },
+            },
           },
         });
 
@@ -658,6 +714,9 @@ export class ArticlesService {
         },
         favorited: {
           select: { userId: true },
+        },
+        comments: {
+          select: { id: true },
         },
       },
     });
