@@ -742,4 +742,31 @@ export class ArticlesService {
       data: { isDraft: false },
     });
   }
+
+  async getUserArticleStats(userId: number) {
+    const articles = await this.databaseService.articles.findMany({
+      where: { authorId: userId },
+      select: {
+        id: true,
+        createdAt: true,
+        favoritesCount: true,
+        comments: { select: { id: true } },
+      },
+    });
+
+    // Lọc và nhóm theo tháng
+    const stats: Record<string, number> = {};
+    for (const article of articles) {
+      const totalInteractions =
+        article.favoritesCount + article.comments.length;
+      if (totalInteractions >= 50) {
+        const month = article.createdAt.toISOString().slice(0, 7); //theo YYYY-MM
+        stats[month] = (stats[month] || 0) + 1;
+      }
+    }
+
+    return Object.entries(stats)
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([month, count]) => ({ month, count }));
+  }
 }

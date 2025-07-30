@@ -138,4 +138,13 @@ export class ArticlesController {
       message: this.i18n.translate('articles.success.publish_success'),
     };
   }
+
+  @UseGuards(JwtAuthGuard)
+  @Get('my/statistics')
+  async getMyArticleStats(@Req() request: AuthenticatedRequest) {
+    const stats = await this.articlesService.getUserArticleStats(
+      request.user.id,
+    );
+    return { stats };
+  }
 }
