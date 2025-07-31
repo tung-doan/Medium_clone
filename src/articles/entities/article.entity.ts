@@ -11,6 +11,7 @@ export type ArticleResponse = {
   commentsCount: number;
   createdAt: Date;
   updatedAt: Date;
+  isDraft: boolean;
   author: {
     id: number;
     username: string;
@@ -57,6 +58,7 @@ export interface ArticleWithRelations {
   updatedAt: Date;
   tagList: string;
   author: ArticleAuthor;
+  isDraft: boolean;
   favorited: Array<{
     // Kiểm tra xem userid hiện tại có trong mảng favorited hay không từ đấy xác định được favourite trong ArticleResponse
     userId: number;

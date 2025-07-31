@@ -126,4 +126,16 @@ export class ArticlesController {
     );
     return { article };
   }
+
+  @UseGuards(JwtAuthGuard)
+  @Post('publish')
+  async publishArticles(
+    @Body('articleIds') articleIds: number[],
+    @Req() request: AuthenticatedRequest,
+  ) {
+    await this.articlesService.publishArticles(articleIds, request.user.id);
+    return {
+      message: this.i18n.translate('articles.success.publish_success'),
+    };
+  }
 }

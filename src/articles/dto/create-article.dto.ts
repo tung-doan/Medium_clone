@@ -1,4 +1,4 @@
-import { IsString, IsOptional, IsArray, Length, IsNotEmpty } from 'class-validator';
+import { IsString, IsOptional, IsArray, Length, IsNotEmpty, IsBoolean } from 'class-validator';
 
 export class CreateArticleDto {
   @IsString()
@@ -21,4 +21,8 @@ export class CreateArticleDto {
   @IsString({ each: true })
   @Length(1, 50, { each: true })
   tagList?: string[]; 
+
+  @IsOptional()
+  @IsBoolean()
+  isDraft?: boolean;
 }
